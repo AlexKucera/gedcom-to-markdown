@@ -251,12 +251,12 @@ class Individual:
 
         return events
 
-    def get_images(self) -> List[str]:
+    def get_images(self) -> List[Dict[str, str]]:
         """
         Get all image/media references for this person.
 
         Returns:
-            List of image reference IDs
+            List of dictionaries with 'file', 'title', 'format' keys
         """
         images = []
 
@@ -264,8 +264,28 @@ class Individual:
             if child.get_tag() == 'OBJE':
                 # OBJE can have a reference or inline data
                 reference = child.get_value()
-                if reference:
-                    images.append(reference)
+                if reference and reference.startswith('@'):
+                    # Resolve the reference to get actual file info
+                    obje_element = self.gedcom.get_element_dictionary().get(
+                        reference
+                    )
+                    if obje_element:
+                        image_info = {
+                            'file': '',
+                            'title': '',
+                            'format': ''
+                        }
+
+                        for obje_child in obje_element.get_child_elements():
+                            if obje_child.get_tag() == 'FILE':
+                                image_info['file'] = obje_child.get_value() or ''
+                            elif obje_child.get_tag() == 'TITL':
+                                image_info['title'] = obje_child.get_value() or ''
+                            elif obje_child.get_tag() == 'FORM':
+                                image_info['format'] = obje_child.get_value() or ''
+
+                        if image_info['file']:
+                            images.append(image_info)
 
         return images
 
@@ -366,10 +386,25 @@ class Individual:
                                                 text += '\n' + (cont.get_value() or '')
                                         section_data['text'] = text
                                     elif sts_child.get_tag() == 'OBJE':
-                                        # Get image reference
+                                        # Resolve image reference
                                         img_ref = sts_child.get_value()
-                                        if img_ref:
-                                            section_data['images'].append(img_ref)
+                                        if img_ref and img_ref.startswith('@'):
+                                            obje_element = self.gedcom.get_element_dictionary().get(img_ref)
+                                            if obje_element:
+                                                image_info = {
+                                                    'file': '',
+                                                    'title': '',
+                                                    'format': ''
+                                                }
+                                                for obje_child in obje_element.get_child_elements():
+                                                    if obje_child.get_tag() == 'FILE':
+                                                        image_info['file'] = obje_child.get_value() or ''
+                                                    elif obje_child.get_tag() == 'TITL':
+                                                        image_info['title'] = obje_child.get_value() or ''
+                                                    elif obje_child.get_tag() == 'FORM':
+                                                        image_info['format'] = obje_child.get_value() or ''
+                                                if image_info['file']:
+                                                    section_data['images'].append(image_info)
 
                                 if section_data['subtitle'] or section_data['text']:
                                     story['sections'].append(section_data)

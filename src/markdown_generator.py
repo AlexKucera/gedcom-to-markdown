@@ -238,8 +238,10 @@ class MarkdownGenerator:
 
         f.write("## Images\n")
 
-        for image_ref in images:
-            f.write(f"- {image_ref}\n")
+        for image in images:
+            title = image['title'] if image['title'] else 'Image'
+            filename = image['file']
+            f.write(f"![{title}]({filename})\n\n")
 
         f.write('\n')
 
@@ -276,7 +278,9 @@ class MarkdownGenerator:
                 # Write images for this section
                 if section['images']:
                     for img in section['images']:
-                        f.write(f"![Image]({img})\n\n")
+                        title = img['title'] if img['title'] else 'Image'
+                        filename = img['file']
+                        f.write(f"![{title}]({filename})\n\n")
 
         f.write('\n')
 
