@@ -307,7 +307,7 @@ class Individual:
 
         return notes
 
-    def get_stories(self) -> List[Dict[str, str]]:
+    def get_stories(self) -> List[Dict]:
         """
         Get stories/narratives for this person.
 
@@ -315,7 +315,8 @@ class Individual:
         tags for storing longer narratives and stories about individuals.
 
         Returns:
-            List of dictionaries with 'title' and 'text' keys
+            List of dictionaries with 'title', 'sections' keys
+            Each section has 'subtitle', 'text', 'images'
         """
         stories = []
 
@@ -331,24 +332,49 @@ class Individual:
                     if story_element:
                         story = {
                             'title': '',
-                            'text': ''
+                            'description': '',
+                            'sections': []
                         }
 
-                        # Get title and text sections
+                        # Get main title and metadata
                         for section in story_element.get_child_elements():
-                            if section.get_tag() == 'TITL':
-                                story['title'] = section.get_value() or ''
-                            elif section.get_tag() in ['_STS', 'TEXT']:
-                                # Get text content
-                                for text_part in section.get_child_elements():
-                                    if text_part.get_tag() == 'TEXT':
-                                        story['text'] = text_part.get_value() or ''
-                                        # Check for CONT lines
-                                        for cont in text_part.get_child_elements():
-                                            if cont.get_tag() in ['CONT', 'CONC']:
-                                                story['text'] += '\n' + (cont.get_value() or '')
+                            tag = section.get_tag()
 
-                        if story['title'] or story['text']:
+                            if tag == 'TITL':
+                                story['title'] = section.get_value() or ''
+                            elif tag == 'DESC':
+                                story['description'] = section.get_value() or ''
+                            elif tag == '_STS':
+                                # Story section with inline content
+                                # Format: "1 @12375128@ _STS"
+                                # Children at level 2 contain TITL, TEXT, OBJE
+                                section_data = {
+                                    'subtitle': '',
+                                    'text': '',
+                                    'images': []
+                                }
+
+                                # Extract content directly from child elements
+                                for sts_child in section.get_child_elements():
+                                    if sts_child.get_tag() == 'TITL':
+                                        section_data['subtitle'] = sts_child.get_value() or ''
+                                    elif sts_child.get_tag() == 'TEXT':
+                                        text = sts_child.get_value() or ''
+                                        # Get CONT lines
+                                        for cont in sts_child.get_child_elements():
+                                            if cont.get_tag() in ['CONT', 'CONC']:
+                                                text += '\n' + (cont.get_value() or '')
+                                        section_data['text'] = text
+                                    elif sts_child.get_tag() == 'OBJE':
+                                        # Get image reference
+                                        img_ref = sts_child.get_value()
+                                        if img_ref:
+                                            section_data['images'].append(img_ref)
+
+                                if section_data['subtitle'] or section_data['text']:
+                                    story['sections'].append(section_data)
+
+                        if story['title'] or story['sections']:
                             stories.append(story)
 
         return stories

@@ -65,7 +65,9 @@ src/
 - Python 3.7+
 - python-gedcom==1.0.0
 
-## Line Ending Issue
+## Common Issues
+
+### Line Ending Issue
 
 **Important**: Some GEDCOM files exported from macOS applications may use old Mac-style line endings (CR only). If the parser finds 0 individuals, convert line endings first:
 
@@ -77,3 +79,11 @@ with open('file.ged', 'wb') as f:
     f.write(content.replace(b'\r', b'\n'))
 "
 ```
+
+### GEDCOM Version Compatibility
+
+This tool works best with **GEDCOM version 5.5.x or 5.x**. If you're using GEDCOM 7.0+, you may encounter issues with custom tags and story extraction. When exporting from your genealogy software:
+
+1. Choose GEDCOM version 5.5.1 or 5.1.0 if available
+2. Avoid GEDCOM version 7.0+ for better compatibility
+3. After export, check and fix line endings if needed (see above)

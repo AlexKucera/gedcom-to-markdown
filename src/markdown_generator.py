@@ -257,13 +257,26 @@ class MarkdownGenerator:
         for note in notes:
             f.write(f"{note}\n\n")
 
-        # Write stories with titles
+        # Write stories with their sections
         for story in stories:
             if story['title']:
                 f.write(f"### {story['title']}\n\n")
 
-            if story['text']:
-                f.write(f"{story['text']}\n\n")
+            if story['description']:
+                f.write(f"*{story['description']}*\n\n")
+
+            # Write each section
+            for section in story['sections']:
+                if section['subtitle']:
+                    f.write(f"#### {section['subtitle']}\n\n")
+
+                if section['text']:
+                    f.write(f"{section['text']}\n\n")
+
+                # Write images for this section
+                if section['images']:
+                    for img in section['images']:
+                        f.write(f"![Image]({img})\n\n")
 
         f.write('\n')
 
