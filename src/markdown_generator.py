@@ -31,16 +31,16 @@ class MarkdownGenerator:
         stories_dir: Optional[Path] = None
     ):
         """
-        Initialize the generator.
-
-        Args:
-            output_dir: Directory where markdown files will be created
-            media_subdir: Subdirectory for media files (e.g., 'media')
-            stories_subdir: Subdirectory for story files (e.g., 'stories')
-            stories_dir: Directory where story markdown files will be created
-
+        Configure the MarkdownGenerator with paths and optional subdirectories for media and story files.
+        
+        Parameters:
+            output_dir (Path): Directory where markdown notes will be written; must exist and be a directory.
+            media_subdir (str): Optional subdirectory name (relative) to prefix media/image paths in notes.
+            stories_subdir (str): Optional subdirectory name (relative) to use when constructing wiki links to generated story notes.
+            stories_dir (Optional[Path]): Optional directory where story markdown files will be created; defaults to `output_dir` when not provided.
+        
         Raises:
-            ValueError: If output_dir doesn't exist or isn't a directory
+            ValueError: If `output_dir` does not exist or is not a directory.
         """
         if not output_dir.exists():
             raise ValueError(f"Output directory doesn't exist: {output_dir}")
@@ -55,13 +55,13 @@ class MarkdownGenerator:
 
     def generate_note(self, individual: Individual) -> Path:
         """
-        Generate a markdown note for an individual.
-
-        Args:
-            individual: The Individual to create a note for
-
+        Create a markdown file for the given individual containing header, attributes, events, families, parents, children, images, and notes sections.
+        
+        Parameters:
+            individual (Individual): The individual for whom to generate the note.
+        
         Returns:
-            Path to the created markdown file
+            Path: Path to the created markdown file.
         """
         filename = individual.get_file_name() + '.md'
         file_path = self.output_dir / filename
@@ -82,11 +82,25 @@ class MarkdownGenerator:
         return file_path
 
     def _write_header(self, f, individual: Individual):
-        """Write the note header with main name."""
+        """
+        Write the main markdown header containing the individual's full name.
+        
+        Parameters:
+            f (IO[str]): Open text file or writable stream to receive markdown content.
+            individual (Individual): Person whose full name is written as the top-level header.
+        """
         f.write(f"# {individual.get_full_name()}\n\n")
 
     def _write_attributes(self, f, individual: Individual):
-        """Write basic attributes section."""
+        """
+        Write the "Attributes" section to the provided file for the given individual.
+        
+        This emits visible metadata entries for ID, Name, Lived (birth–death years), Sex, birth date/place, death date/place, and any additional non-empty physical attributes provided by the individual. The section is prefixed with "## Attributes" and terminated with a blank line.
+        
+        Parameters:
+            f: A text-mode file-like object opened for writing.
+            individual: An Individual instance supplying ID, name, birth/death info, gender, and additional attributes via its getter methods.
+        """
         f.write("## Attributes\n")
 
         birth = individual.get_birth_info()
@@ -122,7 +136,15 @@ class MarkdownGenerator:
         f.write('\n')
 
     def _write_events(self, f, individual: Individual):
-        """Write life events section."""
+        """
+        Write the "Life Events" section for an individual into the open file.
+        
+        Writes a "Life Events" header and a subsection for each event other than birth or death. For each event, emits Date, Place, and Details lines when those values are present. Maps common GEDCOM-like event codes to readable names (e.g., 'MARR' -> Marriage, 'OCCU' -> Occupation, 'EDUC' -> Education, 'RESI' -> Residence, 'BURI' -> Burial). If the individual has no other events, nothing is written.
+        
+        Parameters:
+            f: A writable text file object positioned where the section should be written.
+            individual (Individual): An object providing event data via get_events(), where each event is a dict containing at least 'type', 'date', 'place', and 'details'.
+        """
         events = individual.get_events()
 
         # Filter out birth and death (already in attributes)
@@ -158,7 +180,15 @@ class MarkdownGenerator:
         f.write('\n')
 
     def _write_families(self, f, individual: Individual):
-        """Write families/marriages section."""
+        """
+        Write the "Families" section for an individual into the provided file handle.
+        
+        Emits a "## Families" header and, for each family that has a partner, a "Marriage" subsection (numbered when the individual has multiple families). For each marriage the function writes hidden metadata entries for Partner (as a wiki link), Marriage date, Marriage place (if present), and lists each Child as hidden metadata (as wiki links). Adds spacing after each marriage and a trailing blank line after the section. If the individual has no families, nothing is written.
+        
+        Parameters:
+            f (io.TextIO): Open text file handle to write the section into.
+            individual (Individual): The individual whose family records will be written.
+        """
         families = individual.get_families()
 
         if not families:
@@ -203,7 +233,15 @@ class MarkdownGenerator:
         f.write('\n')
 
     def _write_parents(self, f, individual: Individual):
-        """Write parents section."""
+        """
+        Write the Parents section for an individual note.
+        
+        If the individual has one or more parents, writes a "## Parents" heading followed by a hidden Obsidian metadata entry for each parent containing a wiki link to the parent's note. If the individual has no parents, the function writes nothing.
+        
+        Parameters:
+            f: A writable file-like object opened for the individual's markdown note.
+            individual (Individual): The individual whose parents should be written.
+        """
         parents = individual.get_parents()
 
         if not parents:
@@ -221,7 +259,11 @@ class MarkdownGenerator:
         f.write('\n')
 
     def _write_children(self, f, individual: Individual):
-        """Write children section (if not already in families)."""
+        """
+        Write a "Children" section listing each child as hidden Obsidian metadata with a wiki link.
+        
+        Does nothing if the individual has any families or has no children.
+        """
         # Skip if we already wrote families section
         if individual.get_families():
             return
@@ -243,7 +285,15 @@ class MarkdownGenerator:
         f.write('\n')
 
     def _write_images(self, f, individual: Individual):
-        """Write images section."""
+        """
+        Write an "Images" section to the open file for all images returned by the individual.
+        
+        If the individual has no images, nothing is written. Each image is written as a Markdown image reference (![title](path)). If an image has no title, the literal "Image" is used. When the generator was configured with a media subdirectory, that subdirectory is prefixed to the image filename.
+        
+        Parameters:
+            f: A writable file-like object positioned where the section should be emitted.
+            individual (Individual): The individual whose images are written. Expects items from individual.get_images() to be dicts with keys 'file' (filename) and optional 'title'.
+        """
         images = individual.get_images()
 
         if not images:
@@ -265,14 +315,19 @@ class MarkdownGenerator:
 
     def _generate_story_file(self, story: dict, individual_name: str) -> str:
         """
-        Generate a separate markdown file for a story.
-
-        Args:
-            story: Story dictionary with title, description, and sections
-            individual_name: Name of the individual this story belongs to
-
+        Generate a separate markdown file for a story and return the story note name.
+        
+        Parameters:
+            story (dict): Story data containing keys:
+                - title (str | None): Story title; "Untitled Story" used if empty.
+                - description (str | None): Optional short description placed under the title.
+                - sections (List[dict]): Ordered sections; each section may contain
+                    'subtitle' (str | None), 'text' (str | None), and 'images' (List[dict]).
+                    Images should be dicts with 'file' (str) and optional 'title' (str).
+            individual_name (str): Full name of the individual the story relates to; used for a back-link.
+        
         Returns:
-            Filename of the generated story (for WikiLink)
+            str: The generated story note name (filename without the ".md" extension). If a story file with the same filename was already created, returns the existing note name.
         """
         story_title = story['title'] if story['title'] else 'Untitled Story'
         # Create a safe filename
@@ -331,7 +386,15 @@ class MarkdownGenerator:
         return filename.replace('.md', '')
 
     def _write_notes(self, f, individual: Individual):
-        """Write notes section."""
+        """
+        Write the "Notes" section for an individual, including inline notes and links to separate story files.
+        
+        If the individual has no notes and no stories, nothing is written. For each regular note, writes the note text into the section. For each story, generates or reuses a story markdown file via the generator, then writes a WikiLink to that story (prefixed with the configured stories subdirectory when present) and includes the story's description on the same line if provided.
+        
+        Parameters:
+            f: A writable text file object opened for the individual's markdown note.
+            individual (Individual): The individual whose notes and stories will be rendered.
+        """
         notes = individual.get_notes()
         stories = individual.get_stories()
 
@@ -373,15 +436,39 @@ class MarkdownGenerator:
         f.write('\n')
 
     def _write_metadata(self, f, key: str, value: str):
-        """Write visible Obsidian metadata."""
+        """
+        Write a visible Obsidian metadata line for the given key and value.
+        
+        Parameters:
+            f: A text file-like object to write the metadata line to.
+            key (str): Metadata key to appear before the separator.
+            value (str): Metadata value to appear after the separator.
+        
+        Description:
+            Emits metadata in the Obsidian visible format: [Key:: Value]
+        """
         f.write(f"[{key}:: {value}]\n")
 
     def _write_metadata_hidden(self, f, key: str, value: str):
-        """Write hidden Obsidian metadata."""
+        """
+        Write a hidden Obsidian metadata line to the provided file.
+        
+        Writes a single line in the form "(Key:: Value)" followed by a newline to the file-like object `f`.
+        
+        Parameters:
+            f: A writable file-like object to which the metadata line will be written.
+            key (str): Metadata key.
+            value (str): Metadata value.
+        """
         f.write(f"({key}:: {value})\n")
 
     def _wiki_link(self, text: str) -> str:
-        """Format text as a WikiLink."""
+        """
+        Format text as an Obsidian-style WikiLink.
+        
+        Returns:
+            wiki_link (str): The input text wrapped in double square brackets (e.g. `[[Name]]`).
+        """
         return f"[[{text}]]"
 
     def generate_all(self, individuals: List[Individual]) -> List[Path]:
