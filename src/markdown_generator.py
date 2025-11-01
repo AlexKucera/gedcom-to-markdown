@@ -6,7 +6,7 @@ in the family tree.
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 import logging
 
 from individual import Individual
@@ -23,13 +23,21 @@ class MarkdownGenerator:
     markdown with WikiLinks and metadata.
     """
 
-    def __init__(self, output_dir: Path, media_subdir: str = ''):
+    def __init__(
+        self,
+        output_dir: Path,
+        media_subdir: str = '',
+        stories_subdir: str = '',
+        stories_dir: Optional[Path] = None
+    ):
         """
         Initialize the generator.
 
         Args:
             output_dir: Directory where markdown files will be created
-            media_subdir: Subdirectory for media files (e.g., 'images')
+            media_subdir: Subdirectory for media files (e.g., 'media')
+            stories_subdir: Subdirectory for story files (e.g., 'stories')
+            stories_dir: Directory where story markdown files will be created
 
         Raises:
             ValueError: If output_dir doesn't exist or isn't a directory
@@ -41,6 +49,9 @@ class MarkdownGenerator:
 
         self.output_dir = output_dir
         self.media_subdir = media_subdir
+        self.stories_subdir = stories_subdir
+        self.stories_dir = stories_dir if stories_dir else output_dir
+        self.generated_stories = {}  # Track generated story files
 
     def generate_note(self, individual: Individual) -> Path:
         """
@@ -252,6 +263,73 @@ class MarkdownGenerator:
 
         f.write('\n')
 
+    def _generate_story_file(self, story: dict, individual_name: str) -> str:
+        """
+        Generate a separate markdown file for a story.
+
+        Args:
+            story: Story dictionary with title, description, and sections
+            individual_name: Name of the individual this story belongs to
+
+        Returns:
+            Filename of the generated story (for WikiLink)
+        """
+        story_title = story['title'] if story['title'] else 'Untitled Story'
+        # Create a safe filename
+        safe_title = story_title.replace('/', '-').replace('\\', '-')
+        filename = f"{safe_title}.md"
+        file_path = self.stories_dir / filename
+
+        # Check if we've already generated this story
+        if filename in self.generated_stories:
+            return filename.replace('.md', '')
+
+        logger.debug(f"Generating story file: {filename}")
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            # Write story header
+            f.write(f"# {story_title}\n\n")
+
+            # Write description if available
+            if story['description']:
+                f.write(f"*{story['description']}*\n\n")
+
+            # Link back to the individual
+            # If using subdirectories, stories are in stories/ and people are in people/
+            if self.media_subdir:  # If using subdirs (media_subdir is set), use path prefix
+                person_link = f"[[people/{individual_name}|{individual_name}]]"
+            else:
+                person_link = f"[[{individual_name}]]"
+
+            f.write(f"**Related to:** {person_link}\n\n")
+            f.write("---\n\n")
+
+            # Write each section
+            for section in story['sections']:
+                if section['subtitle']:
+                    f.write(f"## {section['subtitle']}\n\n")
+
+                if section['text']:
+                    f.write(f"{section['text']}\n\n")
+
+                # Write images for this section
+                if section['images']:
+                    for img in section['images']:
+                        title = img['title'] if img['title'] else 'Image'
+                        filename_img = img['file']
+                        # Add media subdirectory prefix if specified
+                        if self.media_subdir:
+                            image_path = f"../{self.media_subdir}/{filename_img}"
+                        else:
+                            image_path = filename_img
+                        f.write(f"![{title}]({image_path})\n\n")
+
+        # Track that we've generated this story
+        self.generated_stories[filename] = True
+
+        # Return the note name for WikiLink (without .md extension)
+        return filename.replace('.md', '')
+
     def _write_notes(self, f, individual: Individual):
         """Write notes section."""
         notes = individual.get_notes()
@@ -266,33 +344,31 @@ class MarkdownGenerator:
         for note in notes:
             f.write(f"{note}\n\n")
 
-        # Write stories with their sections
-        for story in stories:
-            if story['title']:
-                f.write(f"### {story['title']}\n\n")
+        # Generate separate story files and link to them
+        if stories:
+            f.write("### Stories\n\n")
+            individual_name = individual.get_file_name()
 
-            if story['description']:
-                f.write(f"*{story['description']}*\n\n")
+            for story in stories:
+                # Generate the story file
+                story_note_name = self._generate_story_file(story, individual_name)
 
-            # Write each section
-            for section in story['sections']:
-                if section['subtitle']:
-                    f.write(f"#### {section['subtitle']}\n\n")
+                # Create a WikiLink to the story
+                story_title = story['title'] if story['title'] else 'Untitled Story'
 
-                if section['text']:
-                    f.write(f"{section['text']}\n\n")
+                # Use proper path prefix if using subdirectories
+                if self.stories_subdir:
+                    story_link = f"[[{self.stories_subdir}/{story_note_name}|{story_title}]]"
+                else:
+                    story_link = f"[[{story_note_name}|{story_title}]]"
 
-                # Write images for this section
-                if section['images']:
-                    for img in section['images']:
-                        title = img['title'] if img['title'] else 'Image'
-                        filename = img['file']
-                        # Add media subdirectory prefix if specified
-                        if self.media_subdir:
-                            image_path = f"{self.media_subdir}/{filename}"
-                        else:
-                            image_path = filename
-                        f.write(f"![{title}]({image_path})\n\n")
+                # Write the link with description if available
+                if story['description']:
+                    f.write(f"- {story_link} - *{story['description']}*\n")
+                else:
+                    f.write(f"- {story_link}\n")
+
+            f.write('\n')
 
         f.write('\n')
 
