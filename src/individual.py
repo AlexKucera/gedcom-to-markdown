@@ -40,11 +40,20 @@ class Individual:
     def get_id(self) -> str:
         """
         Provide the GEDCOM identifier for this individual without surrounding '@' characters.
-        
+
         Returns:
             str: The GEDCOM identifier with all '@' characters removed.
         """
         return self.element.get_pointer().replace('@', '')
+
+    def get_pointer(self) -> str:
+        """
+        Get the full GEDCOM pointer/ID for this individual (with @ symbols).
+
+        Returns:
+            str: The GEDCOM pointer (e.g., '@I123@')
+        """
+        return self.element.get_pointer()
 
     def get_names(self) -> Tuple[str, str]:
         """
@@ -222,6 +231,62 @@ class Individual:
                     "children": children,
                 }
             )
+
+        return families
+
+    def get_families_as_child(self) -> List[Dict]:
+        """
+        Get all families where this person is a child (to find parents).
+
+        Returns:
+            List of dictionaries with family information including:
+            - father: str (father's GEDCOM ID) or None
+            - mother: str (mother's GEDCOM ID) or None
+        """
+        families = []
+
+        # Use the python-gedcom method to get parents
+        # Then find the family record that connects them
+        parent_elements = self.gedcom.get_parents(self.element)
+
+        # Get all family records
+        for family in self.gedcom.get_root_child_elements():
+            if family.get_tag() == gedcom.tags.GEDCOM_TAG_FAMILY:
+                # Check if this person is a child in this family
+                children = self.gedcom.get_family_members(family, gedcom.tags.GEDCOM_TAG_CHILD)
+                child_pointers = [c.get_pointer() for c in children]
+
+                if self.element.get_pointer() in child_pointers:
+                    # This person is a child in this family, get the parents
+                    parents = self.gedcom.get_family_members(family, "PARENTS")
+
+                    father_id = None
+                    mother_id = None
+
+                    for parent in parents:
+                        # Determine gender to assign father/mother
+                        # Check gender tag
+                        gender = None
+                        for child_elem in parent.get_child_elements():
+                            if child_elem.get_tag() == "SEX":
+                                gender = child_elem.get_value()
+                                break
+
+                        if gender == "M":
+                            father_id = parent.get_pointer()
+                        elif gender == "F":
+                            mother_id = parent.get_pointer()
+                        else:
+                            # If no gender specified, assign to father if empty, else mother
+                            if not father_id:
+                                father_id = parent.get_pointer()
+                            elif not mother_id:
+                                mother_id = parent.get_pointer()
+
+                    families.append({
+                        "father": father_id,
+                        "mother": mother_id,
+                    })
 
         return families
 
