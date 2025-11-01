@@ -23,12 +23,13 @@ class MarkdownGenerator:
     markdown with WikiLinks and metadata.
     """
 
-    def __init__(self, output_dir: Path):
+    def __init__(self, output_dir: Path, media_subdir: str = ''):
         """
         Initialize the generator.
 
         Args:
             output_dir: Directory where markdown files will be created
+            media_subdir: Subdirectory for media files (e.g., 'images')
 
         Raises:
             ValueError: If output_dir doesn't exist or isn't a directory
@@ -39,6 +40,7 @@ class MarkdownGenerator:
             raise ValueError(f"Output path is not a directory: {output_dir}")
 
         self.output_dir = output_dir
+        self.media_subdir = media_subdir
 
     def generate_note(self, individual: Individual) -> Path:
         """
@@ -241,7 +243,12 @@ class MarkdownGenerator:
         for image in images:
             title = image['title'] if image['title'] else 'Image'
             filename = image['file']
-            f.write(f"![{title}]({filename})\n\n")
+            # Add media subdirectory prefix if specified
+            if self.media_subdir:
+                image_path = f"{self.media_subdir}/{filename}"
+            else:
+                image_path = filename
+            f.write(f"![{title}]({image_path})\n\n")
 
         f.write('\n')
 
@@ -280,7 +287,12 @@ class MarkdownGenerator:
                     for img in section['images']:
                         title = img['title'] if img['title'] else 'Image'
                         filename = img['file']
-                        f.write(f"![{title}]({filename})\n\n")
+                        # Add media subdirectory prefix if specified
+                        if self.media_subdir:
+                            image_path = f"{self.media_subdir}/{filename}"
+                        else:
+                            image_path = filename
+                        f.write(f"![{title}]({image_path})\n\n")
 
         f.write('\n')
 
