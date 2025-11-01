@@ -84,7 +84,7 @@ def convert_gedcom_to_markdown(
     output_dir: Path,
     create_index: bool = True,
     media_dir: Optional[Path] = None,
-    media_subdir: str = ''
+    use_flat_structure: bool = False
 ) -> int:
     """
     Convert a GEDCOM file to markdown notes.
@@ -94,7 +94,7 @@ def convert_gedcom_to_markdown(
         output_dir: Directory for output markdown files
         create_index: Whether to create an index file
         media_dir: Optional directory containing media files to copy
-        media_subdir: Subdirectory name for media files (e.g., 'images')
+        use_flat_structure: If True, use flat structure. If False, create subdirectories.
 
     Returns:
         Exit code (0 for success, non-zero for failure)
@@ -102,6 +102,25 @@ def convert_gedcom_to_markdown(
     logger = logging.getLogger(__name__)
 
     try:
+        # Determine directory structure
+        if use_flat_structure:
+            people_dir = output_dir
+            media_output_dir = output_dir
+            stories_dir = output_dir
+            media_subdir_name = ''
+            stories_subdir_name = ''
+        else:
+            people_dir = output_dir / 'people'
+            media_output_dir = output_dir / 'media'
+            stories_dir = output_dir / 'stories'
+            media_subdir_name = 'media'
+            stories_subdir_name = 'stories'
+
+            # Create subdirectories
+            people_dir.mkdir(parents=True, exist_ok=True)
+            media_output_dir.mkdir(parents=True, exist_ok=True)
+            stories_dir.mkdir(parents=True, exist_ok=True)
+
         # Parse GEDCOM file
         logger.info(f"Parsing GEDCOM file: {gedcom_file}")
         parser = GedcomParser(gedcom_file)
@@ -120,16 +139,18 @@ def convert_gedcom_to_markdown(
         ]
 
         # Generate markdown notes
-        logger.info(f"Generating markdown notes in: {output_dir}")
-        generator = MarkdownGenerator(output_dir, media_subdir=media_subdir)
+        logger.info(f"Generating markdown notes in: {people_dir}")
+        generator = MarkdownGenerator(
+            people_dir,
+            media_subdir=media_subdir_name,
+            stories_subdir=stories_subdir_name,
+            stories_dir=stories_dir
+        )
         created_files = generator.generate_all(individuals)
         logger.info(f"Created {len(created_files)} markdown files")
 
         # Copy media files if available
         if media_dir and media_dir.exists():
-            media_output_dir = output_dir / media_subdir if media_subdir else output_dir
-            media_output_dir.mkdir(parents=True, exist_ok=True)
-
             logger.info(f"Copying media files to: {media_output_dir}")
             media_files = []
             for ext in ['*.jpg', '*.jpeg', '*.png', '*.gif', '*.bmp', '*.JPG', '*.JPEG', '*.PNG']:
@@ -146,7 +167,8 @@ def convert_gedcom_to_markdown(
         # Generate index
         if create_index:
             logger.info("Generating index file")
-            index_gen = IndexGenerator(output_dir)
+            people_subdir_name = '' if use_flat_structure else 'people'
+            index_gen = IndexGenerator(output_dir, people_subdir=people_subdir_name)
             index_path = index_gen.generate_index(individuals)
             logger.info(f"Created index file: {index_path}")
 
@@ -167,19 +189,30 @@ def convert_gedcom_to_markdown(
 def main():
     """Main entry point for the CLI."""
     parser = argparse.ArgumentParser(
-        description='Convert GEDCOM genealogy files to Obsidian markdown notes'
+        description='Convert GEDCOM genealogy files to Obsidian markdown notes',
+        epilog='Example: python src/main.py --input family.zip --output vault/family'
     )
 
     parser.add_argument(
-        'gedcom_file',
+        '-i', '--input',
         type=Path,
-        help='Path to the input GEDCOM (.ged) or GEDZIP (.zip) file'
+        required=True,
+        metavar='FILE',
+        help='Path to input GEDCOM (.ged) or GEDZIP (.zip) file'
     )
 
     parser.add_argument(
-        'output_dir',
+        '-o', '--output',
         type=Path,
-        help='Directory for output markdown files'
+        required=True,
+        metavar='DIR',
+        help='Output directory for generated notes'
+    )
+
+    parser.add_argument(
+        '--flat',
+        action='store_true',
+        help='Use flat structure (all files in output root). Default creates subdirectories: people/, media/, stories/'
     )
 
     parser.add_argument(
@@ -194,13 +227,6 @@ def main():
         help='Enable verbose logging'
     )
 
-    parser.add_argument(
-        '--media-subdir',
-        type=str,
-        default='',
-        help='Subdirectory for media files (e.g., "images"). If not specified, media files are placed in output_dir.'
-    )
-
     args = parser.parse_args()
 
     # Setup logging
@@ -208,34 +234,32 @@ def main():
     logger = logging.getLogger(__name__)
 
     # Validate inputs
-    if not args.gedcom_file.exists():
-        logger.error(f"GEDCOM file not found: {args.gedcom_file}")
+    if not args.input.exists():
+        logger.error(f"Input file not found: {args.input}")
         return 1
 
-    if not args.output_dir.exists():
-        logger.error(f"Output directory not found: {args.output_dir}")
-        logger.info("Please create the output directory first")
-        return 1
+    # Create output directory if it doesn't exist
+    args.output.mkdir(parents=True, exist_ok=True)
 
     # Check if input is a ZIP file
-    is_zip = args.gedcom_file.suffix.lower() in ['.zip', '.gedzip']
+    is_zip = args.input.suffix.lower() in ['.zip', '.gedzip']
     temp_dir = None
-    gedcom_file = args.gedcom_file
+    gedcom_file = args.input
     media_dir = None
 
     try:
         if is_zip:
             # Extract ZIP file to temporary directory
             temp_dir = Path(tempfile.mkdtemp(prefix='gedcom_'))
-            gedcom_file, media_dir = extract_gedzip(args.gedcom_file, temp_dir)
+            gedcom_file, media_dir = extract_gedzip(args.input, temp_dir)
 
         # Convert
         exit_code = convert_gedcom_to_markdown(
             gedcom_file=gedcom_file,
-            output_dir=args.output_dir,
+            output_dir=args.output,
             create_index=not args.no_index,
             media_dir=media_dir,
-            media_subdir=args.media_subdir
+            use_flat_structure=args.flat
         )
 
         return exit_code
