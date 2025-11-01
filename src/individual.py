@@ -5,7 +5,7 @@ This module provides a rich data model for individuals in a family tree,
 extracting all relevant information from GEDCOM data.
 """
 
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Tuple
 import logging
 
 from gedcom.element.individual import IndividualElement
@@ -37,7 +37,7 @@ class Individual:
 
     def get_id(self) -> str:
         """Get the GEDCOM ID without @ symbols."""
-        return self.element.get_pointer().replace('@', '')
+        return self.element.get_pointer().replace("@", "")
 
     def get_names(self) -> Tuple[str, str]:
         """
@@ -88,9 +88,9 @@ class Individual:
         year = self.element.get_birth_year()
 
         return {
-            'date': date or '',
-            'place': place or '',
-            'year': str(year) if year != -1 else ''
+            "date": date or "",
+            "place": place or "",
+            "year": str(year) if year != -1 else "",
         }
 
     def get_death_info(self) -> Dict[str, str]:
@@ -102,16 +102,13 @@ class Individual:
         """
         date, place, sources = self.element.get_death_data()
 
-        return {
-            'date': date or '',
-            'place': place or ''
-        }
+        return {"date": date or "", "place": place or ""}
 
     def get_gender(self) -> str:
         """Get the person's gender (M/F/U)."""
-        return self.element.get_gender() or 'U'
+        return self.element.get_gender() or "U"
 
-    def get_parents(self) -> List['Individual']:
+    def get_parents(self) -> List["Individual"]:
         """
         Get this person's parents.
 
@@ -119,10 +116,12 @@ class Individual:
             List of Individual objects representing parents
         """
         parent_elements = self.gedcom.get_parents(self.element)
-        return [Individual(p, type('', (), {'parser': self.gedcom})())
-                for p in parent_elements]
+        return [
+            Individual(p, type("", (), {"parser": self.gedcom})())
+            for p in parent_elements
+        ]
 
-    def get_children(self) -> List['Individual']:
+    def get_children(self) -> List["Individual"]:
         """
         Get this person's children.
 
@@ -132,16 +131,15 @@ class Individual:
         children = []
         for family in self.gedcom.get_families(self.element):
             child_elements = self.gedcom.get_family_members(
-                family,
-                gedcom.tags.GEDCOM_TAG_CHILD
+                family, gedcom.tags.GEDCOM_TAG_CHILD
             )
             for child in child_elements:
                 children.append(
-                    Individual(child, type('', (), {'parser': self.gedcom})())
+                    Individual(child, type("", (), {"parser": self.gedcom})())
                 )
         return children
 
-    def get_partners(self) -> List['Individual']:
+    def get_partners(self) -> List["Individual"]:
         """
         Get this person's spouses/partners.
 
@@ -150,18 +148,12 @@ class Individual:
         """
         partners = []
         for family in self.gedcom.get_families(self.element):
-            parent_elements = self.gedcom.get_family_members(
-                family,
-                'PARENTS'
-            )
+            parent_elements = self.gedcom.get_family_members(family, "PARENTS")
             for parent in parent_elements:
                 # Don't include self
                 if parent.get_pointer() != self.element.get_pointer():
                     partners.append(
-                        Individual(
-                            parent,
-                            type('', (), {'parser': self.gedcom})()
-                        )
+                        Individual(parent, type("", (), {"parser": self.gedcom})())
                     )
         return partners
 
@@ -180,42 +172,40 @@ class Individual:
         for family in self.gedcom.get_families(self.element):
             # Get partner
             partners = []
-            for parent in self.gedcom.get_family_members(family, 'PARENTS'):
+            for parent in self.gedcom.get_family_members(family, "PARENTS"):
                 if parent.get_pointer() != self.element.get_pointer():
                     partners.append(
-                        Individual(
-                            parent,
-                            type('', (), {'parser': self.gedcom})()
-                        )
+                        Individual(parent, type("", (), {"parser": self.gedcom})())
                     )
 
             # Get marriage info
-            marriage_date = ''
-            marriage_place = ''
+            marriage_date = ""
+            marriage_place = ""
             for child in family.get_child_elements():
-                if child.get_tag() == 'MARR':
+                if child.get_tag() == "MARR":
                     for subchild in child.get_child_elements():
-                        if subchild.get_tag() == 'DATE':
+                        if subchild.get_tag() == "DATE":
                             marriage_date = subchild.get_value()
-                        elif subchild.get_tag() == 'PLAC':
+                        elif subchild.get_tag() == "PLAC":
                             marriage_place = subchild.get_value()
 
             # Get children
             children = []
             for child in self.gedcom.get_family_members(
-                family,
-                gedcom.tags.GEDCOM_TAG_CHILD
+                family, gedcom.tags.GEDCOM_TAG_CHILD
             ):
                 children.append(
-                    Individual(child, type('', (), {'parser': self.gedcom})())
+                    Individual(child, type("", (), {"parser": self.gedcom})())
                 )
 
-            families.append({
-                'partner': partners[0] if partners else None,
-                'marriage_date': marriage_date,
-                'marriage_place': marriage_place,
-                'children': children
-            })
+            families.append(
+                {
+                    "partner": partners[0] if partners else None,
+                    "marriage_date": marriage_date,
+                    "marriage_place": marriage_place,
+                    "children": children,
+                }
+            )
 
         return families
 
@@ -232,20 +222,20 @@ class Individual:
             tag = child.get_tag()
 
             # Common event tags
-            if tag in ['BIRT', 'DEAT', 'MARR', 'OCCU', 'EDUC', 'RESI', 'BURI']:
+            if tag in ["BIRT", "DEAT", "MARR", "OCCU", "EDUC", "RESI", "BURI"]:
                 event = {
-                    'type': tag,
-                    'date': '',
-                    'place': '',
-                    'details': child.get_value() or ''
+                    "type": tag,
+                    "date": "",
+                    "place": "",
+                    "details": child.get_value() or "",
                 }
 
                 # Extract date and place
                 for subchild in child.get_child_elements():
-                    if subchild.get_tag() == 'DATE':
-                        event['date'] = subchild.get_value()
-                    elif subchild.get_tag() == 'PLAC':
-                        event['place'] = subchild.get_value()
+                    if subchild.get_tag() == "DATE":
+                        event["date"] = subchild.get_value()
+                    elif subchild.get_tag() == "PLAC":
+                        event["place"] = subchild.get_value()
 
                 events.append(event)
 
@@ -261,30 +251,24 @@ class Individual:
         images = []
 
         for child in self.element.get_child_elements():
-            if child.get_tag() == 'OBJE':
+            if child.get_tag() == "OBJE":
                 # OBJE can have a reference or inline data
                 reference = child.get_value()
-                if reference and reference.startswith('@'):
+                if reference and reference.startswith("@"):
                     # Resolve the reference to get actual file info
-                    obje_element = self.gedcom.get_element_dictionary().get(
-                        reference
-                    )
+                    obje_element = self.gedcom.get_element_dictionary().get(reference)
                     if obje_element:
-                        image_info = {
-                            'file': '',
-                            'title': '',
-                            'format': ''
-                        }
+                        image_info = {"file": "", "title": "", "format": ""}
 
                         for obje_child in obje_element.get_child_elements():
-                            if obje_child.get_tag() == 'FILE':
-                                image_info['file'] = obje_child.get_value() or ''
-                            elif obje_child.get_tag() == 'TITL':
-                                image_info['title'] = obje_child.get_value() or ''
-                            elif obje_child.get_tag() == 'FORM':
-                                image_info['format'] = obje_child.get_value() or ''
+                            if obje_child.get_tag() == "FILE":
+                                image_info["file"] = obje_child.get_value() or ""
+                            elif obje_child.get_tag() == "TITL":
+                                image_info["title"] = obje_child.get_value() or ""
+                            elif obje_child.get_tag() == "FORM":
+                                image_info["format"] = obje_child.get_value() or ""
 
-                        if image_info['file']:
+                        if image_info["file"]:
                             images.append(image_info)
 
         return images
@@ -299,30 +283,28 @@ class Individual:
         notes = []
 
         for child in self.element.get_child_elements():
-            if child.get_tag() == 'NOTE':
-                note_text = child.get_value() or ''
+            if child.get_tag() == "NOTE":
+                note_text = child.get_value() or ""
 
                 # If note_text starts with @, it's a reference to a NOTE record
-                if note_text.startswith('@') and note_text.endswith('@'):
+                if note_text.startswith("@") and note_text.endswith("@"):
                     # Resolve the reference
-                    note_element = self.gedcom.get_element_dictionary().get(
-                        note_text
-                    )
+                    note_element = self.gedcom.get_element_dictionary().get(note_text)
                     if note_element:
                         # Get the note text from the NOTE element
-                        note_text = note_element.get_value() or ''
+                        note_text = note_element.get_value() or ""
 
                         # Get continued text from the NOTE record
                         for subchild in note_element.get_child_elements():
-                            if subchild.get_tag() in ['CONT', 'CONC']:
-                                note_text += '\n' + (subchild.get_value() or '')
+                            if subchild.get_tag() in ["CONT", "CONC"]:
+                                note_text += "\n" + (subchild.get_value() or "")
                 else:
                     # Inline note - check for continued text in subchilds
                     for subchild in child.get_child_elements():
-                        if subchild.get_tag() in ['CONT', 'CONC']:
-                            note_text += '\n' + (subchild.get_value() or '')
+                        if subchild.get_tag() in ["CONT", "CONC"]:
+                            note_text += "\n" + (subchild.get_value() or "")
 
-                if note_text and not note_text.startswith('@'):
+                if note_text and not note_text.startswith("@"):
                     notes.append(note_text.strip())
 
         return notes
@@ -341,75 +323,83 @@ class Individual:
         stories = []
 
         for child in self.element.get_child_elements():
-            if child.get_tag() == '_STO':
+            if child.get_tag() == "_STO":
                 story_ref = child.get_value()
 
-                if story_ref and story_ref.startswith('@'):
+                if story_ref and story_ref.startswith("@"):
                     # Resolve the story reference
-                    story_element = self.gedcom.get_element_dictionary().get(
-                        story_ref
-                    )
+                    story_element = self.gedcom.get_element_dictionary().get(story_ref)
                     if story_element:
-                        story = {
-                            'title': '',
-                            'description': '',
-                            'sections': []
-                        }
+                        story = {"title": "", "description": "", "sections": []}
 
                         # Get main title and metadata
                         for section in story_element.get_child_elements():
                             tag = section.get_tag()
 
-                            if tag == 'TITL':
-                                story['title'] = section.get_value() or ''
-                            elif tag == 'DESC':
-                                story['description'] = section.get_value() or ''
-                            elif tag == '_STS':
+                            if tag == "TITL":
+                                story["title"] = section.get_value() or ""
+                            elif tag == "DESC":
+                                story["description"] = section.get_value() or ""
+                            elif tag == "_STS":
                                 # Story section with inline content
                                 # Format: "1 @12375128@ _STS"
                                 # Children at level 2 contain TITL, TEXT, OBJE
                                 section_data = {
-                                    'subtitle': '',
-                                    'text': '',
-                                    'images': []
+                                    "subtitle": "",
+                                    "text": "",
+                                    "images": [],
                                 }
 
                                 # Extract content directly from child elements
                                 for sts_child in section.get_child_elements():
-                                    if sts_child.get_tag() == 'TITL':
-                                        section_data['subtitle'] = sts_child.get_value() or ''
-                                    elif sts_child.get_tag() == 'TEXT':
-                                        text = sts_child.get_value() or ''
+                                    if sts_child.get_tag() == "TITL":
+                                        section_data["subtitle"] = (
+                                            sts_child.get_value() or ""
+                                        )
+                                    elif sts_child.get_tag() == "TEXT":
+                                        text = sts_child.get_value() or ""
                                         # Get CONT lines
                                         for cont in sts_child.get_child_elements():
-                                            if cont.get_tag() in ['CONT', 'CONC']:
-                                                text += '\n' + (cont.get_value() or '')
-                                        section_data['text'] = text
-                                    elif sts_child.get_tag() == 'OBJE':
+                                            if cont.get_tag() in ["CONT", "CONC"]:
+                                                text += "\n" + (cont.get_value() or "")
+                                        section_data["text"] = text
+                                    elif sts_child.get_tag() == "OBJE":
                                         # Resolve image reference
                                         img_ref = sts_child.get_value()
-                                        if img_ref and img_ref.startswith('@'):
-                                            obje_element = self.gedcom.get_element_dictionary().get(img_ref)
+                                        if img_ref and img_ref.startswith("@"):
+                                            obje_element = self.gedcom.get_element_dictionary().get(
+                                                img_ref
+                                            )
                                             if obje_element:
                                                 image_info = {
-                                                    'file': '',
-                                                    'title': '',
-                                                    'format': ''
+                                                    "file": "",
+                                                    "title": "",
+                                                    "format": "",
                                                 }
-                                                for obje_child in obje_element.get_child_elements():
-                                                    if obje_child.get_tag() == 'FILE':
-                                                        image_info['file'] = obje_child.get_value() or ''
-                                                    elif obje_child.get_tag() == 'TITL':
-                                                        image_info['title'] = obje_child.get_value() or ''
-                                                    elif obje_child.get_tag() == 'FORM':
-                                                        image_info['format'] = obje_child.get_value() or ''
-                                                if image_info['file']:
-                                                    section_data['images'].append(image_info)
+                                                for (
+                                                    obje_child
+                                                ) in obje_element.get_child_elements():
+                                                    if obje_child.get_tag() == "FILE":
+                                                        image_info["file"] = (
+                                                            obje_child.get_value() or ""
+                                                        )
+                                                    elif obje_child.get_tag() == "TITL":
+                                                        image_info["title"] = (
+                                                            obje_child.get_value() or ""
+                                                        )
+                                                    elif obje_child.get_tag() == "FORM":
+                                                        image_info["format"] = (
+                                                            obje_child.get_value() or ""
+                                                        )
+                                                if image_info["file"]:
+                                                    section_data["images"].append(
+                                                        image_info
+                                                    )
 
-                                if section_data['subtitle'] or section_data['text']:
-                                    story['sections'].append(section_data)
+                                if section_data["subtitle"] or section_data["text"]:
+                                    story["sections"].append(section_data)
 
-                        if story['title'] or story['sections']:
+                        if story["title"] or story["sections"]:
                             stories.append(story)
 
         return stories
@@ -427,7 +417,7 @@ class Individual:
             tag = child.get_tag()
 
             # Physical attributes
-            if tag in ['EYES', 'HAIR', 'HEIG']:
-                attributes[tag.lower()] = child.get_value() or ''
+            if tag in ["EYES", "HAIR", "HEIG"]:
+                attributes[tag.lower()] = child.get_value() or ""
 
         return attributes

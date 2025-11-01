@@ -26,9 +26,9 @@ class MarkdownGenerator:
     def __init__(
         self,
         output_dir: Path,
-        media_subdir: str = '',
-        stories_subdir: str = '',
-        stories_dir: Optional[Path] = None
+        media_subdir: str = "",
+        stories_subdir: str = "",
+        stories_dir: Optional[Path] = None,
     ):
         """
         Initialize the generator.
@@ -63,12 +63,12 @@ class MarkdownGenerator:
         Returns:
             Path to the created markdown file
         """
-        filename = individual.get_file_name() + '.md'
+        filename = individual.get_file_name() + ".md"
         file_path = self.output_dir / filename
 
         logger.info(f"Generating note: {filename}")
 
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             # Write all sections
             self._write_header(f, individual)
             self._write_attributes(f, individual)
@@ -92,26 +92,26 @@ class MarkdownGenerator:
         birth = individual.get_birth_info()
         death = individual.get_death_info()
 
-        self._write_metadata(f, 'ID', individual.get_id())
-        self._write_metadata(f, 'Name', individual.get_full_name())
+        self._write_metadata(f, "ID", individual.get_id())
+        self._write_metadata(f, "Name", individual.get_full_name())
 
         # Lived years
         lived = f"{birth['year']}-{death['date'][:4] if death['date'] else ''}"
-        self._write_metadata(f, 'Lived', lived)
+        self._write_metadata(f, "Lived", lived)
 
-        self._write_metadata(f, 'Sex', individual.get_gender())
+        self._write_metadata(f, "Sex", individual.get_gender())
 
         # Birth details
-        if birth['date']:
-            self._write_metadata(f, 'Born', birth['date'])
-        if birth['place']:
-            self._write_metadata(f, 'Place of birth', birth['place'])
+        if birth["date"]:
+            self._write_metadata(f, "Born", birth["date"])
+        if birth["place"]:
+            self._write_metadata(f, "Place of birth", birth["place"])
 
         # Death details
-        if death['date']:
-            self._write_metadata(f, 'Passed away', death['date'])
-        if death['place']:
-            self._write_metadata(f, 'Place of death', death['place'])
+        if death["date"]:
+            self._write_metadata(f, "Passed away", death["date"])
+        if death["place"]:
+            self._write_metadata(f, "Place of death", death["place"])
 
         # Physical attributes
         attrs = individual.get_attributes()
@@ -119,15 +119,14 @@ class MarkdownGenerator:
             if value:
                 self._write_metadata(f, key.capitalize(), value)
 
-        f.write('\n')
+        f.write("\n")
 
     def _write_events(self, f, individual: Individual):
         """Write life events section."""
         events = individual.get_events()
 
         # Filter out birth and death (already in attributes)
-        other_events = [e for e in events
-                        if e['type'] not in ['BIRT', 'DEAT']]
+        other_events = [e for e in events if e["type"] not in ["BIRT", "DEAT"]]
 
         if not other_events:
             return
@@ -135,27 +134,27 @@ class MarkdownGenerator:
         f.write("## Life Events\n")
 
         event_names = {
-            'MARR': 'Marriage',
-            'OCCU': 'Occupation',
-            'EDUC': 'Education',
-            'RESI': 'Residence',
-            'BURI': 'Burial'
+            "MARR": "Marriage",
+            "OCCU": "Occupation",
+            "EDUC": "Education",
+            "RESI": "Residence",
+            "BURI": "Burial",
         }
 
         for event in other_events:
-            event_type = event_names.get(event['type'], event['type'])
+            event_type = event_names.get(event["type"], event["type"])
             f.write(f"### {event_type}\n")
 
-            if event['date']:
+            if event["date"]:
                 f.write(f"- **Date**: {event['date']}\n")
-            if event['place']:
+            if event["place"]:
                 f.write(f"- **Place**: {event['place']}\n")
-            if event['details']:
+            if event["details"]:
                 f.write(f"- **Details**: {event['details']}\n")
 
-            f.write('\n')
+            f.write("\n")
 
-        f.write('\n')
+        f.write("\n")
 
     def _write_families(self, f, individual: Individual):
         """Write families/marriages section."""
@@ -167,40 +166,30 @@ class MarkdownGenerator:
         f.write("## Families\n")
 
         for i, family in enumerate(families, 1):
-            if family['partner']:
-                partner_name = family['partner'].get_file_name()
+            if family["partner"]:
+                partner_name = family["partner"].get_file_name()
                 f.write(f"### Marriage {i if len(families) > 1 else ''}\n")
-                self._write_metadata_hidden(
-                    f,
-                    'Partner',
-                    self._wiki_link(partner_name)
-                )
+                self._write_metadata_hidden(f, "Partner", self._wiki_link(partner_name))
 
-                if family['marriage_date']:
+                if family["marriage_date"]:
                     self._write_metadata_hidden(
-                        f,
-                        'Marriage date',
-                        family['marriage_date']
+                        f, "Marriage date", family["marriage_date"]
                     )
-                if family['marriage_place']:
+                if family["marriage_place"]:
                     self._write_metadata_hidden(
-                        f,
-                        'Marriage place',
-                        family['marriage_place']
+                        f, "Marriage place", family["marriage_place"]
                     )
 
-                if family['children']:
-                    f.write('\n**Children:**\n')
-                    for child in family['children']:
+                if family["children"]:
+                    f.write("\n**Children:**\n")
+                    for child in family["children"]:
                         self._write_metadata_hidden(
-                            f,
-                            'Child',
-                            self._wiki_link(child.get_file_name())
+                            f, "Child", self._wiki_link(child.get_file_name())
                         )
 
-                f.write('\n')
+                f.write("\n")
 
-        f.write('\n')
+        f.write("\n")
 
     def _write_parents(self, f, individual: Individual):
         """Write parents section."""
@@ -213,12 +202,10 @@ class MarkdownGenerator:
 
         for parent in parents:
             self._write_metadata_hidden(
-                f,
-                'Parent',
-                self._wiki_link(parent.get_file_name())
+                f, "Parent", self._wiki_link(parent.get_file_name())
             )
 
-        f.write('\n')
+        f.write("\n")
 
     def _write_children(self, f, individual: Individual):
         """Write children section (if not already in families)."""
@@ -235,12 +222,10 @@ class MarkdownGenerator:
 
         for child in children:
             self._write_metadata_hidden(
-                f,
-                'Child',
-                self._wiki_link(child.get_file_name())
+                f, "Child", self._wiki_link(child.get_file_name())
             )
 
-        f.write('\n')
+        f.write("\n")
 
     def _write_images(self, f, individual: Individual):
         """Write images section."""
@@ -252,8 +237,8 @@ class MarkdownGenerator:
         f.write("## Images\n")
 
         for image in images:
-            title = image['title'] if image['title'] else 'Image'
-            filename = image['file']
+            title = image["title"] if image["title"] else "Image"
+            filename = image["file"]
             # Add media subdirectory prefix if specified
             if self.media_subdir:
                 image_path = f"{self.media_subdir}/{filename}"
@@ -261,7 +246,7 @@ class MarkdownGenerator:
                 image_path = filename
             f.write(f"![{title}]({image_path})\n\n")
 
-        f.write('\n')
+        f.write("\n")
 
     def _generate_story_file(self, story: dict, individual_name: str) -> str:
         """
@@ -274,29 +259,31 @@ class MarkdownGenerator:
         Returns:
             Filename of the generated story (for WikiLink)
         """
-        story_title = story['title'] if story['title'] else 'Untitled Story'
+        story_title = story["title"] if story["title"] else "Untitled Story"
         # Create a safe filename
-        safe_title = story_title.replace('/', '-').replace('\\', '-')
+        safe_title = story_title.replace("/", "-").replace("\\", "-")
         filename = f"{safe_title}.md"
         file_path = self.stories_dir / filename
 
         # Check if we've already generated this story
         if filename in self.generated_stories:
-            return filename.replace('.md', '')
+            return filename.replace(".md", "")
 
         logger.debug(f"Generating story file: {filename}")
 
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             # Write story header
             f.write(f"# {story_title}\n\n")
 
             # Write description if available
-            if story['description']:
+            if story["description"]:
                 f.write(f"*{story['description']}*\n\n")
 
             # Link back to the individual
             # If using subdirectories, stories are in stories/ and people are in people/
-            if self.media_subdir:  # If using subdirs (media_subdir is set), use path prefix
+            if (
+                self.media_subdir
+            ):  # If using subdirs (media_subdir is set), use path prefix
                 person_link = f"[[people/{individual_name}|{individual_name}]]"
             else:
                 person_link = f"[[{individual_name}]]"
@@ -305,18 +292,18 @@ class MarkdownGenerator:
             f.write("---\n\n")
 
             # Write each section
-            for section in story['sections']:
-                if section['subtitle']:
+            for section in story["sections"]:
+                if section["subtitle"]:
                     f.write(f"## {section['subtitle']}\n\n")
 
-                if section['text']:
+                if section["text"]:
                     f.write(f"{section['text']}\n\n")
 
                 # Write images for this section
-                if section['images']:
-                    for img in section['images']:
-                        title = img['title'] if img['title'] else 'Image'
-                        filename_img = img['file']
+                if section["images"]:
+                    for img in section["images"]:
+                        title = img["title"] if img["title"] else "Image"
+                        filename_img = img["file"]
                         # Add media subdirectory prefix if specified
                         if self.media_subdir:
                             image_path = f"../{self.media_subdir}/{filename_img}"
@@ -328,7 +315,7 @@ class MarkdownGenerator:
         self.generated_stories[filename] = True
 
         # Return the note name for WikiLink (without .md extension)
-        return filename.replace('.md', '')
+        return filename.replace(".md", "")
 
     def _write_notes(self, f, individual: Individual):
         """Write notes section."""
@@ -354,23 +341,25 @@ class MarkdownGenerator:
                 story_note_name = self._generate_story_file(story, individual_name)
 
                 # Create a WikiLink to the story
-                story_title = story['title'] if story['title'] else 'Untitled Story'
+                story_title = story["title"] if story["title"] else "Untitled Story"
 
                 # Use proper path prefix if using subdirectories
                 if self.stories_subdir:
-                    story_link = f"[[{self.stories_subdir}/{story_note_name}|{story_title}]]"
+                    story_link = (
+                        f"[[{self.stories_subdir}/{story_note_name}|{story_title}]]"
+                    )
                 else:
                     story_link = f"[[{story_note_name}|{story_title}]]"
 
                 # Write the link with description if available
-                if story['description']:
+                if story["description"]:
                     f.write(f"- {story_link} - *{story['description']}*\n")
                 else:
                     f.write(f"- {story_link}\n")
 
-            f.write('\n')
+            f.write("\n")
 
-        f.write('\n')
+        f.write("\n")
 
     def _write_metadata(self, f, key: str, value: str):
         """Write visible Obsidian metadata."""
@@ -403,8 +392,7 @@ class MarkdownGenerator:
                 paths.append(path)
             except Exception as e:
                 logger.error(
-                    f"Failed to generate note for "
-                    f"{individual.get_full_name()}: {e}"
+                    f"Failed to generate note for {individual.get_full_name()}: {e}"
                 )
 
         logger.info(f"Successfully generated {len(paths)} notes")

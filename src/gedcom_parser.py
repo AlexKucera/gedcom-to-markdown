@@ -6,7 +6,7 @@ individual and family data.
 """
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 import logging
 
 from gedcom.parser import Parser
@@ -60,13 +60,13 @@ class GedcomParser:
         detects and fixes such files automatically.
         """
         # Read first chunk to check line endings
-        with open(self.file_path, 'rb') as f:
+        with open(self.file_path, "rb") as f:
             sample = f.read(8192)  # Read first 8KB
 
         # Count different line ending types
-        has_crlf = b'\r\n' in sample
-        has_lf = b'\n' in sample
-        has_cr = b'\r' in sample
+        has_crlf = b"\r\n" in sample
+        has_lf = b"\n" in sample
+        has_cr = b"\r" in sample
 
         # If we have CR but no LF, this is a CR-only file
         if has_cr and not has_lf and not has_crlf:
@@ -76,14 +76,14 @@ class GedcomParser:
             )
 
             # Read entire file and fix line endings
-            with open(self.file_path, 'rb') as f:
+            with open(self.file_path, "rb") as f:
                 content = f.read()
 
             # Replace CR with LF
-            fixed_content = content.replace(b'\r', b'\n')
+            fixed_content = content.replace(b"\r", b"\n")
 
             # Write back to file
-            with open(self.file_path, 'wb') as f:
+            with open(self.file_path, "wb") as f:
                 f.write(fixed_content)
 
             logger.info("Line endings fixed successfully")
