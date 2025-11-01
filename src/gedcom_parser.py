@@ -26,14 +26,14 @@ class GedcomParser:
 
     def __init__(self, file_path: Path):
         """
-        Initialize the parser with a GEDCOM file.
-
-        Args:
-            file_path: Path to the GEDCOM file to parse
-
+        Initialize the GedcomParser with a GEDCOM file path and parse its contents.
+        
+        Parameters:
+            file_path (Path): Path to the GEDCOM file to open and parse.
+        
         Raises:
-            FileNotFoundError: If the GEDCOM file doesn't exist
-            ValueError: If the file cannot be parsed
+            FileNotFoundError: If the GEDCOM file does not exist.
+            ValueError: If parsing the GEDCOM file fails.
         """
         if not file_path.exists():
             raise FileNotFoundError(f"GEDCOM file not found: {file_path}")
@@ -53,11 +53,9 @@ class GedcomParser:
 
     def _fix_line_endings_if_needed(self):
         """
-        Check if GEDCOM file has CR-only line endings and fix them.
-
-        Some macOS applications export GEDCOM files with old Mac-style
-        CR-only line endings, which the parser cannot handle. This method
-        detects and fixes such files automatically.
+        Convert CR-only (old Mac) line endings in the GEDCOM file to LF if detected.
+        
+        If the file is found to use CR-only line endings, this method replaces CR with LF in-place on disk and logs a warning before the change and an informational message after successful rewriting.
         """
         # Read first chunk to check line endings
         with open(self.file_path, "rb") as f:
@@ -90,10 +88,10 @@ class GedcomParser:
 
     def get_individuals(self) -> List[IndividualElement]:
         """
-        Get all individuals from the GEDCOM file.
-
+        Return all IndividualElement objects extracted from the parsed GEDCOM file.
+        
         Returns:
-            List of IndividualElement objects representing people in the tree
+            List[IndividualElement]: A list of individuals found in the GEDCOM root elements.
         """
         individuals = []
         for element in self.parser.get_root_child_elements():
@@ -105,12 +103,12 @@ class GedcomParser:
 
     def get_element_by_pointer(self, pointer: str):
         """
-        Get a GEDCOM element by its pointer/ID.
-
-        Args:
-            pointer: The GEDCOM pointer (e.g., '@I123@')
-
+        Retrieve a GEDCOM element by its pointer/ID.
+        
+        Parameters:
+            pointer (str): GEDCOM pointer string (e.g., '@I123@').
+        
         Returns:
-            The element with the given pointer, or None if not found
+            The element with the given pointer, or `None` if not found.
         """
         return self.parser.get_element_dictionary().get(pointer)

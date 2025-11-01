@@ -22,7 +22,15 @@ from index_generator import IndexGenerator
 
 
 def setup_logging(verbose: bool = False):
-    """Configure logging for the application."""
+    """
+    Configure root logger formatting and level for the application.
+    
+    Sets the logging level to DEBUG when `verbose` is True, otherwise to INFO.
+    Also applies a consistent message format and timestamp date format used across the application.
+    
+    Parameters:
+        verbose (bool): When True, enable DEBUG-level logging; otherwise use INFO-level logging.
+    """
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(
         level=level,
@@ -33,17 +41,18 @@ def setup_logging(verbose: bool = False):
 
 def extract_gedzip(zip_path: Path, temp_dir: Path) -> Tuple[Path, Optional[Path]]:
     """
-    Extract a GEDZIP file and locate the GEDCOM file and media directory.
-
-    Args:
-        zip_path: Path to the ZIP/GEDZIP file
-        temp_dir: Temporary directory for extraction
-
+    Extracts a ZIP/GEDZIP archive and locates the GEDCOM file and an optional media directory.
+    
+    Searches the extracted contents for the first `.ged` file and for image files (jpg, jpeg, png, gif, bmp)
+    to identify a media directory.
+    
     Returns:
-        Tuple of (gedcom_file_path, media_directory_path)
-
+        A tuple `(gedcom_file_path, media_directory_path)` where `gedcom_file_path` is the path to the found
+        GEDCOM file and `media_directory_path` is the path to the directory containing media files or `None`
+        if no media files were found.
+    
     Raises:
-        ValueError: If no GEDCOM file is found in the archive
+        ValueError: If no GEDCOM (`.ged`) file is found in the archive.
     """
     logger = logging.getLogger(__name__)
     logger.info(f"Extracting ZIP archive: {zip_path}")
@@ -89,17 +98,17 @@ def convert_gedcom_to_markdown(
     use_flat_structure: bool = False,
 ) -> int:
     """
-    Convert a GEDCOM file to markdown notes.
-
-    Args:
-        gedcom_file: Path to the input GEDCOM file
-        output_dir: Directory for output markdown files
-        create_index: Whether to create an index file
-        media_dir: Optional directory containing media files to copy
-        use_flat_structure: If True, use flat structure. If False, create subdirectories.
-
+    Convert a GEDCOM file into Obsidian-compatible Markdown notes organized on disk.
+    
+    Parameters:
+        gedcom_file (Path): Path to the input GEDCOM file.
+        output_dir (Path): Directory where generated markdown, media, and story files will be written.
+        create_index (bool): Whether to generate an index file linking the generated person notes.
+        media_dir (Optional[Path]): Optional source directory of media files to copy into the output media directory.
+        use_flat_structure (bool): If True, write all outputs directly into `output_dir`; if False, create subdirectories (`people/`, `media/`, `stories/`).
+    
     Returns:
-        Exit code (0 for success, non-zero for failure)
+        int: 0 on success, 1 on failure.
     """
     logger = logging.getLogger(__name__)
 
@@ -196,7 +205,14 @@ def convert_gedcom_to_markdown(
 
 
 def main():
-    """Main entry point for the CLI."""
+    """
+    Run the command-line interface to convert a GEDCOM or GEDZIP archive into Obsidian-compatible Markdown notes.
+    
+    Parses CLI arguments, prepares input and output paths (extracting archives to a temporary directory when needed), invokes the conversion process, and cleans up any temporary files.
+    
+    Returns:
+        int: Exit code where `0` indicates success and `1` indicates failure.
+    """
     parser = argparse.ArgumentParser(
         description="Convert GEDCOM genealogy files to Obsidian markdown notes",
         epilog="Example: python src/main.py --input family.zip --output vault/family",

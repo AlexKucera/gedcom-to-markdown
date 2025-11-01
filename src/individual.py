@@ -26,48 +26,52 @@ class Individual:
 
     def __init__(self, element: IndividualElement, gedcom_parser):
         """
-        Initialize an Individual from a GEDCOM element.
-
-        Args:
-            element: The GEDCOM IndividualElement
-            gedcom_parser: The GedcomParser instance for resolving references
+        Create an Individual wrapper around a GEDCOM individual element and its parser.
+        
+        Stores the provided IndividualElement and the parser reference (gedcom_parser.parser) used to resolve cross-references.
+        
+        Parameters:
+            element (IndividualElement): The GEDCOM individual element to wrap.
+            gedcom_parser: The GedcomParser instance whose `parser` attribute will be used for resolving references.
         """
         self.element = element
         self.gedcom = gedcom_parser.parser
 
     def get_id(self) -> str:
-        """Get the GEDCOM ID without @ symbols."""
-        return self.element.get_pointer().replace("@", "")
+        """
+        Provide the GEDCOM identifier for this individual without surrounding '@' characters.
+        
+        Returns:
+            str: The GEDCOM identifier with all '@' characters removed.
+        """
+        return self.element.get_pointer().replace('@', '')
 
     def get_names(self) -> Tuple[str, str]:
         """
-        Get the person's names.
-
+        Return the individual's first and last name with surrounding whitespace removed.
+        
         Returns:
-            Tuple of (first_name, last_name)
+            tuple(first_name, last_name): The person's given name and family name, both trimmed of leading and trailing whitespace.
         """
         first, last = self.element.get_name()
         return first.strip(), last.strip()
 
     def get_full_name(self) -> str:
         """
-        Get the full name in 'FirstName LastName' format.
-
+        Return the individual's full name formatted as "First Last".
+        
         Returns:
-            Full name with proper capitalization
+            Full name string in title case (e.g., "John Doe"); empty string if no name parts exist.
         """
         first, last = self.get_names()
         return f"{first} {last}".strip().title()
 
     def get_file_name(self) -> str:
         """
-        Get the filename for this person's note.
-
-        Format: 'FamilyName FirstName BirthYear'
-        If no birth year is known, year is omitted.
-
+        Build a filename-like string for the individual in the form "FamilyName FirstName" optionally followed by the birth year.
+        
         Returns:
-            Filename without .md extension
+            filename (str): The generated filename string, either "FamilyName FirstName BirthYear" or "FamilyName FirstName" when the birth year is not available; does not include a file extension.
         """
         first, last = self.get_names()
         name_part = f"{last} {first}".strip().title()
@@ -79,10 +83,13 @@ class Individual:
 
     def get_birth_info(self) -> Dict[str, str]:
         """
-        Get birth information.
-
+        Retrieve the person's birth date, place, and year from the underlying GEDCOM element.
+        
         Returns:
-            Dictionary with 'date', 'place', 'year' keys
+            dict: A dictionary with keys:
+                - 'date' (str): Birth date string or '' if unavailable.
+                - 'place' (str): Birth place string or '' if unavailable.
+                - 'year' (str): Birth year as a string or '' if the year is unknown.
         """
         date, place, sources = self.element.get_birth_data()
         year = self.element.get_birth_year()
@@ -95,25 +102,32 @@ class Individual:
 
     def get_death_info(self) -> Dict[str, str]:
         """
-        Get death information.
-
+        Provide the individual's death date and place.
+        
         Returns:
-            Dictionary with 'date', 'place' keys
+            dict: Dictionary with keys:
+                - date (str): Death date as a string, or '' if unknown.
+                - place (str): Death place as a string, or '' if unknown.
         """
         date, place, sources = self.element.get_death_data()
 
         return {"date": date or "", "place": place or ""}
 
     def get_gender(self) -> str:
-        """Get the person's gender (M/F/U)."""
-        return self.element.get_gender() or "U"
+        """
+        Return the person's gender code.
+        
+        Returns:
+            str: `'M'` for male, `'F'` for female, `'U'` if unspecified or unknown.
+        """
+        return self.element.get_gender() or 'U'
 
     def get_parents(self) -> List["Individual"]:
         """
-        Get this person's parents.
-
+        Retrieve the person's parents.
+        
         Returns:
-            List of Individual objects representing parents
+            A list of Individual objects representing the person's parents.
         """
         parent_elements = self.gedcom.get_parents(self.element)
         return [
@@ -123,10 +137,10 @@ class Individual:
 
     def get_children(self) -> List["Individual"]:
         """
-        Get this person's children.
-
+        Retrieve the person's children as Individual objects.
+        
         Returns:
-            List of Individual objects representing children
+            children (List[Individual]): A list of Individual instances corresponding to this person's children.
         """
         children = []
         for family in self.gedcom.get_families(self.element):
@@ -141,10 +155,12 @@ class Individual:
 
     def get_partners(self) -> List["Individual"]:
         """
-        Get this person's spouses/partners.
-
+        Retrieve this individual's spouses and partners.
+        
+        Each partner is resolved to an Individual wrapper; the subject is excluded from the result.
+        
         Returns:
-            List of Individual objects representing partners
+            List[Individual]: A list of Individual objects representing the person's partners (excluding the subject).
         """
         partners = []
         for family in self.gedcom.get_families(self.element):
@@ -211,10 +227,14 @@ class Individual:
 
     def get_events(self) -> List[Dict[str, str]]:
         """
-        Get all life events for this person.
-
+        Collects the individual's life events found on the GEDCOM element.
+        
         Returns:
-            List of dictionaries with 'type', 'date', 'place' keys
+            List[dict]: Each dictionary represents an event with keys:
+                - 'type' (str): GEDCOM event tag (e.g., 'BIRT', 'DEAT', 'MARR', 'OCCU', 'EDUC', 'RESI', 'BURI').
+                - 'date' (str): Event date value if present, otherwise an empty string.
+                - 'place' (str): Event place value if present, otherwise an empty string.
+                - 'details' (str): The raw value of the event node (empty string if absent).
         """
         events = []
 
@@ -243,10 +263,12 @@ class Individual:
 
     def get_images(self) -> List[Dict[str, str]]:
         """
-        Get all image/media references for this person.
-
+        Return image/media entries referenced by this individual's OBJE nodes.
+        
+        Resolves OBJE references to their records and extracts FILE, TITL, and FORM values; entries without a FILE value are omitted.
+        
         Returns:
-            List of dictionaries with 'file', 'title', 'format' keys
+            List[Dict[str, str]]: A list of dictionaries each containing the keys 'file', 'title', and 'format'. The 'file' value is non-empty for all returned entries.
         """
         images = []
 
@@ -275,10 +297,12 @@ class Individual:
 
     def get_notes(self) -> List[str]:
         """
-        Get all notes for this person.
-
+        Return the person's notes with inline continuations and referenced NOTE records resolved.
+        
+        This resolves NOTE cross-references (values like `@X@`), appends `CONT`/`CONC` continuations, trims whitespace, and omits empty or unresolved references.
+        
         Returns:
-            List of note texts
+            List[str]: Note texts with continuations and referenced NOTE content merged; empty or unresolved notes are omitted.
         """
         notes = []
 
@@ -311,14 +335,22 @@ class Individual:
 
     def get_stories(self) -> List[Dict]:
         """
-        Get stories/narratives for this person.
-
-        Some genealogy programs (like MobileFamilyTree) use custom _STO
-        tags for storing longer narratives and stories about individuals.
-
+        Extract story and narrative records referenced by custom `_STO` tags for this individual.
+        
+        Scans `_STO` child entries, resolves referenced story elements, and assembles structured story data.
+        Each story dictionary contains:
+        - `title` (str): story title (or empty string)
+        - `description` (str): story-level description (or empty string)
+        - `sections` (List[Dict]): ordered list of sections; each section dictionary contains:
+          - `subtitle` (str): section title (or empty string)
+          - `text` (str): section text with `CONT`/`CONC` continuations concatenated (or empty string)
+          - `images` (List[Dict]): list of image dictionaries resolved from `OBJE` references; each image dictionary contains:
+            - `file` (str): file path or name (required for inclusion)
+            - `title` (str): image title (or empty string)
+            - `format` (str): image format (or empty string)
+        
         Returns:
-            List of dictionaries with 'title', 'sections' keys
-            Each section has 'subtitle', 'text', 'images'
+            List[Dict]: list of story dictionaries; empty list if no stories are found.
         """
         stories = []
 
@@ -406,10 +438,11 @@ class Individual:
 
     def get_attributes(self) -> Dict[str, str]:
         """
-        Get physical attributes and other personal details.
-
+        Collect physical attributes from the underlying GEDCOM individual element.
+        
         Returns:
-            Dictionary with attribute names as keys
+            Dict[str, str]: A dictionary with keys 'eyes', 'hair', and 'heig' (lowercase).
+                Each value is the corresponding attribute string or an empty string if absent.
         """
         attributes = {}
 
