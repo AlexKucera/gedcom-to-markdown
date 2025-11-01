@@ -39,6 +39,10 @@ class GedcomParser:
             raise FileNotFoundError(f"GEDCOM file not found: {file_path}")
 
         self.file_path = file_path
+
+        # Check and fix line endings if needed
+        self._fix_line_endings_if_needed()
+
         self.parser = Parser()
 
         try:
@@ -46,6 +50,43 @@ class GedcomParser:
             self.parser.parse_file(str(file_path))
         except Exception as e:
             raise ValueError(f"Failed to parse GEDCOM file: {e}") from e
+
+    def _fix_line_endings_if_needed(self):
+        """
+        Check if GEDCOM file has CR-only line endings and fix them.
+
+        Some macOS applications export GEDCOM files with old Mac-style
+        CR-only line endings, which the parser cannot handle. This method
+        detects and fixes such files automatically.
+        """
+        # Read first chunk to check line endings
+        with open(self.file_path, 'rb') as f:
+            sample = f.read(8192)  # Read first 8KB
+
+        # Count different line ending types
+        has_crlf = b'\r\n' in sample
+        has_lf = b'\n' in sample
+        has_cr = b'\r' in sample
+
+        # If we have CR but no LF, this is a CR-only file
+        if has_cr and not has_lf and not has_crlf:
+            logger.warning(
+                "Detected old Mac-style (CR-only) line endings in GEDCOM file. "
+                "Converting to Unix-style (LF) line endings..."
+            )
+
+            # Read entire file and fix line endings
+            with open(self.file_path, 'rb') as f:
+                content = f.read()
+
+            # Replace CR with LF
+            fixed_content = content.replace(b'\r', b'\n')
+
+            # Write back to file
+            with open(self.file_path, 'wb') as f:
+                f.write(fixed_content)
+
+            logger.info("Line endings fixed successfully")
 
     def get_individuals(self) -> List[IndividualElement]:
         """
