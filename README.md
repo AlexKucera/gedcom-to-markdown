@@ -6,12 +6,13 @@ Convert GEDCOM genealogy files to Obsidian-compatible markdown notes with WikiLi
 
 - **GEDZIP Support**: Automatically extracts and processes ZIP archives with media files
 - **Automatic Line Ending Fix**: Detects and corrects Mac-style line endings
+- **Organized Directory Structure**: Creates separate subdirectories for people, media, and stories (or flat structure with `--flat` flag)
 - **Complete Individual Notes**: Generates detailed markdown notes for each person
-- **WikiLinks**: All relationships use `[[WikiLinks]]` format for Obsidian
+- **Separate Story Files**: Extracts long-form narratives to individual markdown files with bidirectional linking
+- **WikiLinks**: All relationships use `[[WikiLinks]]` format for Obsidian with proper path prefixes
 - **Comprehensive Data**: Captures births, deaths, marriages, events, physical attributes, images, and notes
 - **Multiple Marriages**: Supports individuals with multiple spouses
-- **Life Stories**: Extracts long-form narratives and stories with embedded images
-- **Media Management**: Automatically copies and organizes image files
+- **Media Management**: Automatically copies and organizes image files with correct relative paths
 - **Global Index**: Creates an alphabetical index of all individuals
 - **Proper Naming**: Files named as "FamilyName FirstName BirthYear.md"
 
@@ -26,7 +27,13 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```bash
-python src/main.py path/to/family.ged output/directory
+python src/main.py --input path/to/family.ged --output output/directory
+```
+
+or using short form:
+
+```bash
+python src/main.py -i path/to/family.ged -o output/directory
 ```
 
 ### GEDZIP Support (Recommended)
@@ -34,7 +41,7 @@ python src/main.py path/to/family.ged output/directory
 For best results, **export your genealogy data as a GEDZIP (ZIP) file** which includes both the GEDCOM data and all media files:
 
 ```bash
-python src/main.py path/to/family.zip output/directory --media-subdir images
+python src/main.py -i path/to/family.zip -o output/directory
 ```
 
 This will automatically:
@@ -43,39 +50,83 @@ This will automatically:
 - Copy all media files to the output directory
 - Fix line endings if needed
 - Clean up temporary files
+- Create organized subdirectories for people, media, and stories
+
+### Directory Structure
+
+By default, the converter creates an **organized directory structure**:
+
+```
+output/
+├── Index.md                    # Alphabetical index of all people
+├── people/                     # Person markdown files
+│   ├── Knebl Maria.md
+│   ├── Schaaf Clemens.md
+│   └── ...
+├── media/                      # Images and media files
+│   ├── 57328800.jpg
+│   └── ...
+└── stories/                    # Separate story files
+    ├── Der lange Weg meiner Familie.md
+    └── ...
+```
+
+**Flat Structure Mode**: Use the `--flat` flag to put all files in the output root directory instead:
+
+```bash
+python src/main.py -i family.zip -o output --flat
+```
 
 ### Options
 
+- `-i`, `--input FILE`: Path to input GEDCOM (.ged) or GEDZIP (.zip) file (required)
+- `-o`, `--output DIR`: Output directory for generated notes (required)
+- `--flat`: Use flat structure (all files in output root). Default creates subdirectories
 - `--no-index`: Skip creating the index file
 - `--verbose` or `-v`: Enable detailed logging
-- `--media-subdir <name>`: Place media files in a subdirectory (e.g., "images")
 
 ### Examples
 
-**With GEDZIP file (includes media):**
+**With GEDZIP file (structured output):**
 ```bash
-python src/main.py examples/family.zip examples/output --media-subdir images --verbose
+python src/main.py -i examples/family.zip -o examples/output --verbose
 ```
 
-**With plain GEDCOM file:**
+**With plain GEDCOM file (flat output):**
 ```bash
-python src/main.py examples/family.ged examples/output --verbose
+python src/main.py -i examples/family.ged -o examples/output --flat --verbose
 ```
 
-This will create:
-- One markdown file per person in the output directory
-- An `Index.md` file with alphabetical listing
-- Media files in `output/images/` (if GEDZIP and --media-subdir used)
+**Using long form arguments:**
+```bash
+python src/main.py --input examples/family.zip --output examples/output
+```
 
 ## Output Format
 
-Each person gets a markdown note with sections for:
+### Person Notes
+
+Each person gets a markdown note in the `people/` directory (or output root if using `--flat`) with sections for:
 - **Attributes**: Name, birth, death, physical characteristics
 - **Life Events**: Occupations, education, residences, etc.
 - **Families**: Marriages with dates, places, and children
 - **Parents**: Links to parent notes
-- **Images**: Media references from GEDCOM
-- **Notes**: Long-form stories and narratives
+- **Images**: Media references with proper paths
+- **Notes**: General notes and links to story files
+
+### Story Files
+
+Long-form narratives and stories are extracted to **separate markdown files** in the `stories/` directory (or output root if using `--flat`). Each story file includes:
+- Story title and description
+- Link back to the related person
+- Multiple sections with text and images
+- Properly resolved image paths
+
+Stories are linked from person notes using WikiLinks, making it easy to navigate between family members and their stories in Obsidian.
+
+### Index File
+
+The `Index.md` file at the root contains an alphabetical listing of all individuals with WikiLinks to their person notes.
 
 ## Project Structure
 
