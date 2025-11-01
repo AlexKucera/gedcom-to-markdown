@@ -22,14 +22,16 @@ class IndexGenerator:
     The index is organized alphabetically by last name, then first name.
     """
 
-    def __init__(self, output_dir: Path):
+    def __init__(self, output_dir: Path, people_subdir: str = ''):
         """
         Initialize the index generator.
 
         Args:
             output_dir: Directory where the index file will be created
+            people_subdir: Subdirectory where people files are stored (e.g., 'people')
         """
         self.output_dir = output_dir
+        self.people_subdir = people_subdir
 
     def generate_index(
         self,
@@ -88,7 +90,13 @@ class IndexGenerator:
                 else:
                     life_span = ''
 
-                f.write(f"- [[{filename}]]{life_span}\n")
+                # Create WikiLink with path prefix if using subdirectories
+                if self.people_subdir:
+                    wiki_link = f"[[{self.people_subdir}/{filename}|{individual.get_full_name()}]]"
+                else:
+                    wiki_link = f"[[{filename}]]"
+
+                f.write(f"- {wiki_link}{life_span}\n")
 
         logger.info(f"Index generated with {len(individuals)} individuals")
         return index_path
