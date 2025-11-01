@@ -24,11 +24,11 @@ class IndexGenerator:
 
     def __init__(self, output_dir: Path, people_subdir: str = ''):
         """
-        Initialize the index generator.
-
-        Args:
-            output_dir: Directory where the index file will be created
-            people_subdir: Subdirectory where people files are stored (e.g., 'people')
+        Create an IndexGenerator configured with the target output directory and an optional subdirectory for individual files.
+        
+        Parameters:
+            output_dir (Path): Directory where the generated index file will be written.
+            people_subdir (str): Optional subdirectory name to prepend to people file links (empty string means no subdirectory).
         """
         self.output_dir = output_dir
         self.people_subdir = people_subdir
@@ -39,14 +39,16 @@ class IndexGenerator:
         index_filename: str = 'Index.md'
     ) -> Path:
         """
-        Generate an alphabetical index of all individuals.
-
-        Args:
-            individuals: List of Individual objects
-            index_filename: Name of the index file (default: 'Index.md')
-
+        Generate an alphabetical Markdown index of individuals grouped by last-name initial.
+        
+        Writes a Markdown file at self.output_dir / index_filename containing a header with the total count, section headers "## {LETTER}" for each last-name initial (uses "#" for individuals without a last name), and one wiki-style link per individual (prefixed by the instance's people_subdir when set). Each entry includes an optional life-span "(birth-death)" when birth or death information is available.
+        
+        Parameters:
+            individuals (List[Individual]): Individuals to include in the index.
+            index_filename (str): Name of the index file to create (default: 'Index.md').
+        
         Returns:
-            Path to the created index file
+            Path: Path to the created index file.
         """
         index_path = self.output_dir / index_filename
 
