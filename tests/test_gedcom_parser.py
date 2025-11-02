@@ -71,7 +71,7 @@ class TestLineEndingFixes:
         original_size = len(original_content)
 
         # Parse the file
-        parser = GedcomParser(sample_gedcom_file)
+        _parser = GedcomParser(sample_gedcom_file)
 
         # Content should be unchanged
         new_content = sample_gedcom_file.read_bytes()
