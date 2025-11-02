@@ -113,8 +113,9 @@ class MarkdownGenerator:
         self._write_metadata(f, "Name", individual.get_full_name())
 
         # Lived years
-        lived = f"{birth['year']}-{death['year']}"
-        self._write_metadata(f, "Lived", lived)
+        if birth['year'] or death['year']:
+            lived = f"{birth['year']}-{death['year']}"
+            self._write_metadata(f, "Lived", lived)
 
         self._write_metadata(f, "Sex", individual.get_gender())
 
@@ -483,7 +484,7 @@ class MarkdownGenerator:
             try:
                 path = self.generate_note(individual)
                 paths.append(path)
-            except Exception as e:
+            except Exception:
                 logger.exception(
                     f"Failed to generate note for {individual.get_full_name()}"
                 )
