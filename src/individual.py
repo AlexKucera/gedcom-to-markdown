@@ -24,18 +24,18 @@ class Individual:
     images, and notes.
     """
 
-    def __init__(self, element: IndividualElement, gedcom_parser):
+    def __init__(self, element: IndividualElement, parser):
         """
-        Create an Individual wrapper around a GEDCOM individual element and its parser.
-        
-        Stores the provided IndividualElement and the parser reference (gedcom_parser.parser) used to resolve cross-references.
-        
+        Create an Individual wrapper around a GEDCOM individual element and parser.
+
+        Stores the provided IndividualElement and parser used to resolve cross-references.
+
         Parameters:
             element (IndividualElement): The GEDCOM individual element to wrap.
-            gedcom_parser: The GedcomParser instance whose `parser` attribute will be used for resolving references.
+            parser: The parser instance (e.g., gedcom.parser.Parser) used for resolving references.
         """
         self.element = element
-        self.gedcom = gedcom_parser.parser
+        self.gedcom = parser
 
     def get_id(self) -> str:
         """
@@ -59,22 +59,22 @@ class Individual:
     def get_full_name(self) -> str:
         """
         Return the individual's full name formatted as "First Last".
-        
+
         Returns:
-            Full name string in title case (e.g., "John Doe"); empty string if no name parts exist.
+            Full name string preserving original capitalization; empty string if no name parts exist.
         """
         first, last = self.get_names()
-        return f"{first} {last}".strip().title()
+        return f"{first} {last}".strip()
 
     def get_file_name(self) -> str:
         """
         Build a filename-like string for the individual in the form "FamilyName FirstName" optionally followed by the birth year.
-        
+
         Returns:
-            filename (str): The generated filename string, either "FamilyName FirstName BirthYear" or "FamilyName FirstName" when the birth year is not available; does not include a file extension.
+            filename (str): The generated filename string, either "FamilyName FirstName BirthYear" or "FamilyName FirstName" when the birth year is not available; does not include a file extension; preserves original name capitalization.
         """
         first, last = self.get_names()
-        name_part = f"{last} {first}".strip().title()
+        name_part = f"{last} {first}".strip()
 
         birth_year = self.element.get_birth_year()
         if birth_year != -1:
@@ -84,14 +84,14 @@ class Individual:
     def get_birth_info(self) -> Dict[str, str]:
         """
         Retrieve the person's birth date, place, and year from the underlying GEDCOM element.
-        
+
         Returns:
             dict: A dictionary with keys:
                 - 'date' (str): Birth date string or '' if unavailable.
                 - 'place' (str): Birth place string or '' if unavailable.
                 - 'year' (str): Birth year as a string or '' if the year is unknown.
         """
-        date, place, sources = self.element.get_birth_data()
+        date, place, _sources = self.element.get_birth_data()
         year = self.element.get_birth_year()
 
         return {
@@ -103,13 +103,13 @@ class Individual:
     def get_death_info(self) -> Dict[str, str]:
         """
         Provide the individual's death date and place.
-        
+
         Returns:
             dict: Dictionary with keys:
                 - date (str): Death date as a string, or '' if unknown.
                 - place (str): Death place as a string, or '' if unknown.
         """
-        date, place, sources = self.element.get_death_data()
+        date, place, _sources = self.element.get_death_data()
 
         return {"date": date or "", "place": place or ""}
 
@@ -125,20 +125,17 @@ class Individual:
     def get_parents(self) -> List["Individual"]:
         """
         Retrieve the person's parents.
-        
+
         Returns:
             A list of Individual objects representing the person's parents.
         """
         parent_elements = self.gedcom.get_parents(self.element)
-        return [
-            Individual(p, type("", (), {"parser": self.gedcom})())
-            for p in parent_elements
-        ]
+        return [Individual(p, self.gedcom) for p in parent_elements]
 
     def get_children(self) -> List["Individual"]:
         """
         Retrieve the person's children as Individual objects.
-        
+
         Returns:
             children (List[Individual]): A list of Individual instances corresponding to this person's children.
         """
@@ -148,17 +145,15 @@ class Individual:
                 family, gedcom.tags.GEDCOM_TAG_CHILD
             )
             for child in child_elements:
-                children.append(
-                    Individual(child, type("", (), {"parser": self.gedcom})())
-                )
+                children.append(Individual(child, self.gedcom))
         return children
 
     def get_partners(self) -> List["Individual"]:
         """
         Retrieve this individual's spouses and partners.
-        
+
         Each partner is resolved to an Individual wrapper; the subject is excluded from the result.
-        
+
         Returns:
             List[Individual]: A list of Individual objects representing the person's partners (excluding the subject).
         """
@@ -168,9 +163,7 @@ class Individual:
             for parent in parent_elements:
                 # Don't include self
                 if parent.get_pointer() != self.element.get_pointer():
-                    partners.append(
-                        Individual(parent, type("", (), {"parser": self.gedcom})())
-                    )
+                    partners.append(Individual(parent, self.gedcom))
         return partners
 
     def get_families(self) -> List[Dict]:
@@ -190,9 +183,7 @@ class Individual:
             partners = []
             for parent in self.gedcom.get_family_members(family, "PARENTS"):
                 if parent.get_pointer() != self.element.get_pointer():
-                    partners.append(
-                        Individual(parent, type("", (), {"parser": self.gedcom})())
-                    )
+                    partners.append(Individual(parent, self.gedcom))
 
             # Get marriage info
             marriage_date = ""
@@ -210,9 +201,7 @@ class Individual:
             for child in self.gedcom.get_family_members(
                 family, gedcom.tags.GEDCOM_TAG_CHILD
             ):
-                children.append(
-                    Individual(child, type("", (), {"parser": self.gedcom})())
-                )
+                children.append(Individual(child, self.gedcom))
 
             families.append(
                 {

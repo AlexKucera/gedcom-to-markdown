@@ -40,7 +40,7 @@ class TestIndexGeneration:
         """Get individuals from sample GEDCOM."""
         parser = GedcomParser(sample_gedcom_file)
         elements = parser.get_individuals()
-        return [Individual(elem, parser) for elem in elements]
+        return [Individual(elem, parser.parser) for elem in elements]
 
     def test_generate_index(self, output_dir, individuals):
         """Test basic index generation."""
@@ -104,7 +104,7 @@ class TestAlphabeticalSorting:
 
         parser = GedcomParser(temp_file)
         elements = parser.get_individuals()
-        return [Individual(elem, parser) for elem in elements]
+        return [Individual(elem, parser.parser) for elem in elements]
 
     def test_sorting_by_last_name(self, output_dir, mixed_individuals):
         """Test that individuals are sorted by last name."""
@@ -163,7 +163,7 @@ class TestLetterGrouping:
 
         parser = GedcomParser(temp_file)
         elements = parser.get_individuals()
-        return [Individual(elem, parser) for elem in elements]
+        return [Individual(elem, parser.parser) for elem in elements]
 
     def test_letter_headers(self, output_dir, varied_individuals):
         """Test that letter headers are created for each initial."""
@@ -210,7 +210,7 @@ class TestLetterGrouping:
 
         parser = GedcomParser(temp_file)
         elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in elements]
+        individuals = [Individual(elem, parser.parser) for elem in elements]
 
         generator = IndexGenerator(output_dir)
         index_path = generator.generate_index(individuals)
@@ -228,7 +228,7 @@ class TestWikiLinkFormatting:
         """Get individuals with birth/death dates."""
         parser = GedcomParser(sample_gedcom_file)
         elements = parser.get_individuals()
-        return [Individual(elem, parser) for elem in elements]
+        return [Individual(elem, parser.parser) for elem in elements]
 
     def test_wiki_links_without_subdirs(self, output_dir, individuals_with_dates):
         """Test WikiLink format without subdirectories."""
@@ -257,7 +257,7 @@ class TestLifeSpanFormatting:
         """Get individuals with birth/death dates."""
         parser = GedcomParser(sample_gedcom_file)
         elements = parser.get_individuals()
-        return [Individual(elem, parser) for elem in elements]
+        return [Individual(elem, parser.parser) for elem in elements]
 
     def test_life_span_with_both_dates(self, output_dir, individuals_with_dates):
         """Test life span when both birth and death dates are available."""
@@ -286,7 +286,7 @@ class TestLifeSpanFormatting:
 
         parser = GedcomParser(temp_file)
         elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in elements]
+        individuals = [Individual(elem, parser.parser) for elem in elements]
 
         generator = IndexGenerator(output_dir)
         index_path = generator.generate_index(individuals)
@@ -311,7 +311,7 @@ class TestLifeSpanFormatting:
 
         parser = GedcomParser(temp_file)
         elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in elements]
+        individuals = [Individual(elem, parser.parser) for elem in elements]
 
         generator = IndexGenerator(output_dir)
         index_path = generator.generate_index(individuals)
@@ -343,7 +343,7 @@ class TestLifeSpanFormatting:
 
         parser = GedcomParser(temp_file)
         elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in elements]
+        individuals = [Individual(elem, parser.parser) for elem in elements]
 
         generator = IndexGenerator(output_dir)
         index_path = generator.generate_index(individuals)
@@ -361,7 +361,7 @@ class TestIndexStatistics:
         """Test that total individual count is displayed."""
         parser = GedcomParser(sample_gedcom_file)
         elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in elements]
+        individuals = [Individual(elem, parser.parser) for elem in elements]
 
         generator = IndexGenerator(output_dir)
         index_path = generator.generate_index(individuals)

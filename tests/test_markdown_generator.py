@@ -67,7 +67,7 @@ class TestNoteGeneration:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        return Individual(john[0], parser)
+        return Individual(john[0], parser.parser)
 
     def test_generate_note(self, generator, john_doe):
         """Test basic note generation."""
@@ -93,7 +93,7 @@ class TestNoteGeneration:
         """Test generating notes for all individuals."""
         parser = GedcomParser(sample_gedcom_file)
         individual_elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in individual_elements]
+        individuals = [Individual(elem, parser.parser) for elem in individual_elements]
 
         paths = generator.generate_all(individuals)
 
@@ -116,7 +116,7 @@ class TestMetadataFormatting:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        return Individual(john[0], parser)
+        return Individual(john[0], parser.parser)
 
     def test_visible_metadata(self, generator, john_doe):
         """Test visible metadata format [key:: value]."""
@@ -162,7 +162,7 @@ class TestWikiLinks:
         individual_elements = parser.get_individuals()
 
         # Generate all notes first
-        individuals = [Individual(elem, parser) for elem in individual_elements]
+        individuals = [Individual(elem, parser.parser) for elem in individual_elements]
         generator.generate_all(individuals)
 
         # Check John's note for WikiLinks to Jane and Alice
@@ -178,7 +178,7 @@ class TestWikiLinks:
         """Test WikiLinks to parents."""
         parser = GedcomParser(sample_gedcom_file)
         individual_elements = parser.get_individuals()
-        individuals = [Individual(elem, parser) for elem in individual_elements]
+        individuals = [Individual(elem, parser.parser) for elem in individual_elements]
 
         generator.generate_all(individuals)
 
@@ -206,7 +206,7 @@ class TestEventFormatting:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         file_path = generator.generate_note(john_obj)
         content = file_path.read_text()
@@ -221,7 +221,7 @@ class TestEventFormatting:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         file_path = generator.generate_note(john_obj)
         content = file_path.read_text()
@@ -246,7 +246,7 @@ class TestImageHandling:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         file_path = generator.generate_note(john_obj)
         content = file_path.read_text()
@@ -262,7 +262,7 @@ class TestImageHandling:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         file_path = generator.generate_note(john_obj)
         content = file_path.read_text()
@@ -293,7 +293,7 @@ class TestStoryGeneration:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         # Generate note (should also generate story files if stories are found)
         generator.generate_note(person)
@@ -309,7 +309,7 @@ class TestStoryGeneration:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         file_path = generator.generate_note(person)
         content = file_path.read_text()
@@ -326,7 +326,7 @@ class TestStoryGeneration:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         # Generate twice
         generator.generate_note(person)
@@ -358,7 +358,7 @@ class TestFamilyFormatting:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         file_path = generator.generate_note(john_obj)
         content = file_path.read_text()
@@ -404,7 +404,7 @@ class TestFamilyFormatting:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         file_path = generator.generate_note(person)
         content = file_path.read_text()

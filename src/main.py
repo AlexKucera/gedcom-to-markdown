@@ -149,7 +149,7 @@ def convert_gedcom_to_markdown(
             return 1
 
         # Wrap individuals in our data model
-        individuals = [Individual(elem, parser) for elem in individual_elements]
+        individuals = [Individual(elem, parser.parser) for elem in individual_elements]
 
         # Generate markdown notes
         logger.info(f"Generating markdown notes in: {people_dir}")
