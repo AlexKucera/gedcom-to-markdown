@@ -123,7 +123,7 @@ class TestGedzipExtraction:
         extract_dir.mkdir()
 
         # Should use the first one and log a warning
-        gedcom_file, media_dir = extract_gedzip(zip_path, extract_dir)
+        gedcom_file, _media_dir = extract_gedzip(zip_path, extract_dir)
 
         assert gedcom_file is not None
         assert gedcom_file.exists()
