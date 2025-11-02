@@ -232,14 +232,14 @@ def convert_gedcom_to_markdown(
         logger.info("Conversion completed successfully")
         return 0
 
-    except FileNotFoundError as e:
-        logger.exception(f"File not found")
+    except FileNotFoundError:
+        logger.exception("File not found")
         return 1
-    except ValueError as e:
-        logger.exception(f"Invalid input")
+    except ValueError:
+        logger.exception("Invalid input")
         return 1
-    except Exception as e:
-        logger.exception(f"Unexpected error")
+    except Exception:
+        logger.exception("Unexpected error")
         return 1
 
 
