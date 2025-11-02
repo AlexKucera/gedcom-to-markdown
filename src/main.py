@@ -213,7 +213,7 @@ def convert_gedcom_to_markdown(
                     shutil.copy2(media_file, dest)
                     copied_count += 1
                 except (IOError, OSError) as e:
-                    logger.error(f"Failed to copy {media_file}: {e}")
+                    logger.exception(f"Failed to copy {media_file}")
                     skipped_count += 1
 
             logger.info(
@@ -233,13 +233,13 @@ def convert_gedcom_to_markdown(
         return 0
 
     except FileNotFoundError as e:
-        logger.error(f"File not found: {e}")
+        logger.exception(f"File not found")
         return 1
     except ValueError as e:
-        logger.error(f"Invalid input: {e}")
+        logger.exception(f"Invalid input")
         return 1
     except Exception as e:
-        logger.error(f"Unexpected error: {e}", exc_info=True)
+        logger.exception(f"Unexpected error")
         return 1
 
 
