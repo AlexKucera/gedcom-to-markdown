@@ -14,12 +14,16 @@ from individual import Individual
 logger = logging.getLogger(__name__)
 
 
-def select_root_person(individuals: List[Individual]) -> Optional[str]:
+def select_root_person(individuals: List[Individual], root_id: Optional[str] = None) -> Optional[str]:
     """
     Display an interactive list of individuals and let user select root person.
 
     Args:
         individuals: List of Individual objects from GEDCOM file
+        root_id: Optional identifier for root person. Can be either:
+                 - A numeric index from the selection list (e.g., '85')
+                 - A GEDCOM ID (e.g., '@I253884714@' or 'I253884714')
+                 If provided, validates and returns it. If not provided, prompts interactively.
 
     Returns:
         The GEDCOM pointer/ID of the selected individual, or None if cancelled
@@ -27,6 +31,51 @@ def select_root_person(individuals: List[Individual]) -> Optional[str]:
     if not individuals:
         logger.error("No individuals provided for selection")
         return None
+
+    # If root_id is provided, validate it and return it
+    if root_id:
+        # Check if it's a numeric index (e.g., "85")
+        if root_id.isdigit():
+            index = int(root_id)
+            # Sort individuals the same way as interactive selection
+            sorted_individuals = sorted(
+                individuals,
+                key=lambda ind: (
+                    ind.get_names()[1] or "",  # Last name
+                    ind.get_names()[0] or ""   # First name
+                )
+            )
+
+            if 1 <= index <= len(sorted_individuals):
+                selected = sorted_individuals[index - 1]
+                first_name, last_name = selected.get_names()
+                full_name = f"{last_name or ''} {first_name or ''}".strip()
+                logger.info(f"Using root person by index #{index}: {full_name} ({selected.get_pointer()})")
+                print(f"\nUsing root person: {full_name} ({selected.get_pointer()})")
+                return selected.get_pointer()
+            else:
+                logger.error(f"Root person index '{root_id}' out of range (1-{len(sorted_individuals)})")
+                print(f"\nError: Root person index '{root_id}' out of range (1-{len(sorted_individuals)})")
+                print("Falling back to interactive selection...\n")
+                # Fall through to interactive selection
+        else:
+            # Treat as GEDCOM ID - normalize by adding @ symbols if not present
+            normalized_id = root_id if root_id.startswith('@') else f'@{root_id}@'
+
+            # Find the individual with this ID
+            for individual in individuals:
+                if individual.get_pointer() == normalized_id:
+                    first_name, last_name = individual.get_names()
+                    full_name = f"{last_name or ''} {first_name or ''}".strip()
+                    logger.info(f"Using provided root person: {full_name} ({normalized_id})")
+                    print(f"\nUsing root person: {full_name} ({normalized_id})")
+                    return normalized_id
+
+            # ID not found
+            logger.error(f"Root person ID '{root_id}' not found in GEDCOM file")
+            print(f"\nError: Root person ID '{root_id}' not found in GEDCOM file")
+            print("Falling back to interactive selection...\n")
+            # Fall through to interactive selection
 
     # Sort individuals by last name, then first name
     sorted_individuals = sorted(
