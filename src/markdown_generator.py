@@ -58,11 +58,11 @@ class MarkdownGenerator:
 
     def generate_note(self, individual: Individual) -> Path:
         """
-        Create a markdown file for the given individual containing header, attributes, events, families, parents, children, images, and notes sections.
-        
+        Create a markdown file for the given individual containing YAML frontmatter, header, events, families, parents, children, images, and notes sections.
+
         Parameters:
             individual (Individual): The individual for whom to generate the note.
-        
+
         Returns:
             Path: Path to the created markdown file.
         """
@@ -73,8 +73,8 @@ class MarkdownGenerator:
 
         with open(file_path, "w", encoding="utf-8") as f:
             # Write all sections
+            self._write_frontmatter(f, individual)
             self._write_header(f, individual)
-            self._write_attributes(f, individual)
             self._write_events(f, individual)
             self._write_families(f, individual)
             self._write_parents(f, individual)
@@ -84,60 +84,58 @@ class MarkdownGenerator:
 
         return file_path
 
-    def _write_header(self, f, individual: Individual):
+    def _write_frontmatter(self, f, individual: Individual):
         """
-        Write the main markdown header containing the individual's full name.
-        
-        Parameters:
-            f (IO[str]): Open text file or writable stream to receive markdown content.
-            individual (Individual): Person whose full name is written as the top-level header.
-        """
-        f.write(f"# {individual.get_full_name()}\n\n")
+        Write YAML frontmatter containing individual attributes.
 
-    def _write_attributes(self, f, individual: Individual):
-        """
-        Write the "Attributes" section to the provided file for the given individual.
-        
-        This emits visible metadata entries for ID, Name, Lived (birth–death years), Sex, birth date/place, death date/place, and any additional non-empty physical attributes provided by the individual. The section is prefixed with "## Attributes" and terminated with a blank line.
-        
         Parameters:
-            f: A text-mode file-like object opened for writing.
-            individual: An Individual instance supplying ID, name, birth/death info, gender, and additional attributes via its getter methods.
+            f (IO[str]): Open text file or writable stream to receive YAML frontmatter.
+            individual (Individual): Person whose attributes are written to frontmatter.
         """
-        f.write("## Attributes\n")
+        f.write("---\n")
 
         birth = individual.get_birth_info()
         death = individual.get_death_info()
 
-        self._write_metadata(f, "ID", individual.get_id())
-        self._write_metadata(f, "Name", individual.get_full_name())
+        f.write(f"ID: {individual.get_id()}\n")
+        f.write(f"Name: {individual.get_full_name()}\n")
 
         # Lived years
         if birth['year'] or death['year']:
             lived = f"{birth['year']}-{death['year']}"
-            self._write_metadata(f, "Lived", lived)
+            f.write(f"Lived: {lived}\n")
 
-        self._write_metadata(f, "Sex", individual.get_gender())
+        f.write(f"Sex: {individual.get_gender()}\n")
 
         # Birth details
         if birth["date"]:
-            self._write_metadata(f, "Born", birth["date"])
+            f.write(f"Born: {birth['date']}\n")
         if birth["place"]:
-            self._write_metadata(f, "Place of birth", birth["place"])
+            f.write(f"Place of birth: {birth['place']}\n")
 
         # Death details
         if death["date"]:
-            self._write_metadata(f, "Passed away", death["date"])
+            f.write(f"Passed away: {death['date']}\n")
         if death["place"]:
-            self._write_metadata(f, "Place of death", death["place"])
+            f.write(f"Place of death: {death['place']}\n")
 
         # Physical attributes
         attrs = individual.get_attributes()
         for key, value in attrs.items():
             if value:
-                self._write_metadata(f, key.capitalize(), value)
+                f.write(f"{key.capitalize()}: {value}\n")
 
-        f.write("\n")
+        f.write("---\n\n")
+
+    def _write_header(self, f, individual: Individual):
+        """
+        Write the main markdown header containing the individual's full name.
+
+        Parameters:
+            f (IO[str]): Open text file or writable stream to receive markdown content.
+            individual (Individual): Person whose full name is written as the top-level header.
+        """
+        f.write(f"# {individual.get_full_name()}\n\n")
 
     def _write_events(self, f, individual: Individual):
         """
@@ -186,7 +184,7 @@ class MarkdownGenerator:
         """
         Write the "Families" section for an individual into the provided file handle.
 
-        Emits a "## Families" header and, for each family, a "Marriage" subsection (numbered when the individual has multiple families). For each family the function writes hidden metadata entries for Partner (as a wiki link, if partner is present), Marriage date, Marriage place (if present), and lists each Child as hidden metadata (as wiki links). Adds spacing after each family and a trailing blank line after the section. If the individual has no families, nothing is written.
+        Emits a "## Families" header and, for each family, a "Marriage" subsection (numbered when the individual has multiple families). For each family the function writes bullet points for Partner (as a wiki link, if partner is present), Marriage date, Marriage place (if present), and lists each Child as bullet points (as wiki links). Adds spacing after each family and a trailing blank line after the section. If the individual has no families, nothing is written.
 
         Parameters:
             f (io.TextIO): Open text file handle to write the section into.
@@ -201,30 +199,24 @@ class MarkdownGenerator:
 
         for i, family in enumerate(families, 1):
             # Always write the Marriage header
-            f.write(f"### Marriage{f' {i}' if len(families) > 1 else ''}\n")
+            f.write(f"### Marriage{f' {i}' if len(families) > 1 else ''} \n")
 
-            # Only write partner metadata if partner exists
+            # Only write partner bullet if partner exists
             if family["partner"]:
                 partner_name = family["partner"].get_file_name()
-                self._write_metadata_hidden(f, "Partner", self._wiki_link(partner_name))
+                f.write(f"* Partner: {self._wiki_link(partner_name)}\n")
 
-            # Write marriage metadata if present
+            # Write marriage bullets if present
             if family["marriage_date"]:
-                self._write_metadata_hidden(
-                    f, "Marriage date", family["marriage_date"]
-                )
+                f.write(f"* Marriage date: {family['marriage_date']}\n")
             if family["marriage_place"]:
-                self._write_metadata_hidden(
-                    f, "Marriage place", family["marriage_place"]
-                )
+                f.write(f"* Marriage place: {family['marriage_place']}\n")
 
             # Write children if they exist
             if family["children"]:
                 f.write("\n**Children:**\n")
                 for child in family["children"]:
-                    self._write_metadata_hidden(
-                        f, "Child", self._wiki_link(child.get_file_name())
-                    )
+                    f.write(f"* Child: {self._wiki_link(child.get_file_name())}\n")
 
             f.write("\n")
 
@@ -233,9 +225,9 @@ class MarkdownGenerator:
     def _write_parents(self, f, individual: Individual):
         """
         Write the Parents section for an individual note.
-        
-        If the individual has one or more parents, writes a "## Parents" heading followed by a hidden Obsidian metadata entry for each parent containing a wiki link to the parent's note. If the individual has no parents, the function writes nothing.
-        
+
+        If the individual has one or more parents, writes a "## Parents" heading followed by a bullet point for each parent containing a wiki link to the parent's note. If the individual has no parents, the function writes nothing.
+
         Parameters:
             f: A writable file-like object opened for the individual's markdown note.
             individual (Individual): The individual whose parents should be written.
@@ -248,16 +240,14 @@ class MarkdownGenerator:
         f.write("## Parents\n")
 
         for parent in parents:
-            self._write_metadata_hidden(
-                f, "Parent", self._wiki_link(parent.get_file_name())
-            )
+            f.write(f"* Parent: {self._wiki_link(parent.get_file_name())}\n")
 
         f.write("\n")
 
     def _write_children(self, f, individual: Individual):
         """
-        Write a "Children" section listing each child as hidden Obsidian metadata with a wiki link.
-        
+        Write a "Children" section listing each child as a bullet point with a wiki link.
+
         Does nothing if the individual has any families or has no children.
         """
         # Skip if we already wrote families section
@@ -272,9 +262,7 @@ class MarkdownGenerator:
         f.write("## Children\n")
 
         for child in children:
-            self._write_metadata_hidden(
-                f, "Child", self._wiki_link(child.get_file_name())
-            )
+            f.write(f"* Child: {self._wiki_link(child.get_file_name())}\n")
 
         f.write("\n")
 
