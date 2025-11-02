@@ -16,7 +16,9 @@ def temp_dir():
     """Create a temporary directory that is cleaned up after the test."""
     tmp = Path(tempfile.mkdtemp())
     yield tmp
-    shutil.rmtree(tmp)
+    # On Windows, files may still be locked by the process
+    # Use ignore_errors to prevent test failures during cleanup
+    shutil.rmtree(tmp, ignore_errors=True)
 
 
 @pytest.fixture
