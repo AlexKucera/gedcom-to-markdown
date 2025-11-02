@@ -23,16 +23,18 @@ class IndexGenerator:
     The index is organized alphabetically by last name, then first name.
     """
 
-    def __init__(self, output_dir: Path, people_subdir: str = ""):
+    def __init__(self, output_dir: Path, people_subdir: str = "", filename_map: dict = None):
         """
         Create an IndexGenerator configured with the target output directory and an optional subdirectory for individual files.
-        
+
         Parameters:
             output_dir (Path): Directory where the generated index file will be written.
             people_subdir (str): Optional subdirectory name to prepend to people file links (empty string means no subdirectory).
+            filename_map (dict): Optional mapping from individual IDs to actual filenames (for handling duplicates).
         """
         self.output_dir = output_dir
         self.people_subdir = people_subdir
+        self.filename_map = filename_map or {}
 
     def generate_index(
         self, individuals: List[Individual], index_filename: str = "Index.md"
@@ -80,7 +82,13 @@ class IndexGenerator:
                     f.write(f"\n## {current_letter}\n\n")
 
                 # Write individual link with life span
-                filename = individual.get_file_name()
+                # Use mapped filename if available, otherwise use base filename
+                individual_id = individual.get_id()
+                if individual_id in self.filename_map:
+                    filename = self.filename_map[individual_id]
+                else:
+                    filename = individual.get_file_name()
+
                 birth_info = individual.get_birth_info()
                 death_info = individual.get_death_info()
 

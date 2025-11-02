@@ -55,6 +55,31 @@ class MarkdownGenerator:
         self.stories_dir = stories_dir if stories_dir else output_dir
         self.use_subdirectories = use_subdirectories
         self.generated_stories = {}  # Track generated story files
+        self.filename_map = {}  # Map from individual ID to actual filename used
+
+    def _get_unique_filename(self, base_name: str, individual_id: str) -> str:
+        """
+        Get a unique filename for an individual, handling duplicates by adding (1), (2), etc.
+
+        Parameters:
+            base_name (str): Base filename without extension (e.g., "Kucera Alexander Maximilian")
+            individual_id (str): The individual's GEDCOM ID
+
+        Returns:
+            str: Unique filename without extension (e.g., "Kucera Alexander Maximilian (1)")
+        """
+        # Check if this base name has been used before
+        counter = 1
+        used_names = set(self.filename_map.values())
+        unique_name = base_name
+
+        while unique_name in used_names:
+            unique_name = f"{base_name} ({counter})"
+            counter += 1
+
+        # Store the mapping
+        self.filename_map[individual_id] = unique_name
+        return unique_name
 
     def generate_note(self, individual: Individual) -> Path:
         """
@@ -66,7 +91,9 @@ class MarkdownGenerator:
         Returns:
             Path: Path to the created markdown file.
         """
-        filename = individual.get_file_name() + ".md"
+        base_name = individual.get_file_name()
+        unique_name = self._get_unique_filename(base_name, individual.get_id())
+        filename = unique_name + ".md"
         file_path = self.output_dir / filename
 
         logger.info(f"Generating note: {filename}")
@@ -203,7 +230,7 @@ class MarkdownGenerator:
 
             # Only write partner bullet if partner exists
             if family["partner"]:
-                partner_name = family["partner"].get_file_name()
+                partner_name = self._get_actual_filename(family["partner"])
                 f.write(f"* Partner: {self._wiki_link(partner_name)}\n")
 
             # Write marriage bullets if present
@@ -216,7 +243,7 @@ class MarkdownGenerator:
             if family["children"]:
                 f.write("\n**Children:**\n")
                 for child in family["children"]:
-                    f.write(f"* Child: {self._wiki_link(child.get_file_name())}\n")
+                    f.write(f"* Child: {self._wiki_link(self._get_actual_filename(child))}\n")
 
             f.write("\n")
 
@@ -240,7 +267,7 @@ class MarkdownGenerator:
         f.write("## Parents\n")
 
         for parent in parents:
-            f.write(f"* Parent: {self._wiki_link(parent.get_file_name())}\n")
+            f.write(f"* Parent: {self._wiki_link(self._get_actual_filename(parent))}\n")
 
         f.write("\n")
 
@@ -262,7 +289,7 @@ class MarkdownGenerator:
         f.write("## Children\n")
 
         for child in children:
-            f.write(f"* Child: {self._wiki_link(child.get_file_name())}\n")
+            f.write(f"* Child: {self._wiki_link(self._get_actual_filename(child))}\n")
 
         f.write("\n")
 
@@ -392,7 +419,7 @@ class MarkdownGenerator:
         # Generate separate story files and link to them
         if stories:
             f.write("### Stories\n\n")
-            individual_name = individual.get_file_name()
+            individual_name = self._get_actual_filename(individual)
 
             for story in stories:
                 # Generate the story file
@@ -446,10 +473,25 @@ class MarkdownGenerator:
         """
         f.write(f"({key}:: {value})\n")
 
+    def _get_actual_filename(self, individual: Individual) -> str:
+        """
+        Get the actual filename for an individual, using the mapped name if available.
+
+        Parameters:
+            individual (Individual): The individual to get the filename for
+
+        Returns:
+            str: The actual filename without extension
+        """
+        individual_id = individual.get_id()
+        if individual_id in self.filename_map:
+            return self.filename_map[individual_id]
+        return individual.get_file_name()
+
     def _wiki_link(self, text: str) -> str:
         """
         Format text as an Obsidian-style WikiLink.
-        
+
         Returns:
             wiki_link (str): The input text wrapped in double square brackets (e.g. `[[Name]]`).
         """

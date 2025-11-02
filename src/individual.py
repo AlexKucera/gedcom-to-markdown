@@ -78,18 +78,13 @@ class Individual:
 
     def get_file_name(self) -> str:
         """
-        Build a filename-like string for the individual in the form "FamilyName FirstName" optionally followed by the birth year.
+        Build a filename-like string for the individual in the form "FamilyName FirstName".
 
         Returns:
-            filename (str): The generated filename string, either "FamilyName FirstName BirthYear" or "FamilyName FirstName" when the birth year is not available; does not include a file extension; preserves original name capitalization.
+            filename (str): The generated filename string "FamilyName FirstName"; does not include a file extension; preserves original name capitalization.
         """
         first, last = self.get_names()
-        name_part = f"{last} {first}".strip()
-
-        birth_year = self.element.get_birth_year()
-        if birth_year != -1:
-            return f"{name_part} {birth_year}"
-        return name_part
+        return f"{last} {first}".strip()
 
     def get_birth_info(self) -> Dict[str, str]:
         """

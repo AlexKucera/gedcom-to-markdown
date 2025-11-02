@@ -269,7 +269,11 @@ def convert_gedcom_to_markdown(
         if create_index:
             logger.info("Generating index file")
             people_subdir_name = "" if use_flat_structure else "people"
-            index_gen = IndexGenerator(output_dir, people_subdir=people_subdir_name)
+            index_gen = IndexGenerator(
+                output_dir,
+                people_subdir=people_subdir_name,
+                filename_map=generator.filename_map
+            )
             index_path = index_gen.generate_index(individuals)
             logger.info(f"Created index file: {index_path}")
 
