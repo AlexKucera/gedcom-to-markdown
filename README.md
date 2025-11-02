@@ -1,6 +1,6 @@
 <div align="center">
 
-![Family Tree Header](assets/header.jpg)
+![Family Tree Header](https://github.com/AlexKucera/gedcom-to-markdown/blob/main/assets/vivian-arcidiacono-WksHX9oosJI-unsplash.jpg)
 
 # GEDCOM to Markdown Converter
 
