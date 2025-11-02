@@ -7,6 +7,7 @@ extracting all relevant information from GEDCOM data.
 
 from typing import List, Dict, Tuple
 import logging
+import re
 
 from gedcom.element.individual import IndividualElement
 import gedcom.tags
@@ -102,16 +103,25 @@ class Individual:
 
     def get_death_info(self) -> Dict[str, str]:
         """
-        Provide the individual's death date and place.
+        Provide the individual's death date, place, and year.
 
         Returns:
             dict: Dictionary with keys:
                 - date (str): Death date as a string, or '' if unknown.
                 - place (str): Death place as a string, or '' if unknown.
+                - year (str): Death year extracted from date, or '' if unavailable.
         """
         date, place, _sources = self.element.get_death_data()
 
-        return {"date": date or "", "place": place or ""}
+        # Extract year from date string using regex
+        # Handles formats like "1850", "ABT 1850", "1 JAN 1850", "JAN 1850"
+        year = ""
+        if date:
+            year_match = re.search(r'\b(\d{4})\b', date)
+            if year_match:
+                year = year_match.group(1)
+
+        return {"date": date or "", "place": place or "", "year": year}
 
     def get_gender(self) -> str:
         """

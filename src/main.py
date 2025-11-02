@@ -158,6 +158,7 @@ def convert_gedcom_to_markdown(
             media_subdir=media_subdir_name,
             stories_subdir=stories_subdir_name,
             stories_dir=stories_dir,
+            use_subdirectories=not use_flat_structure,
         )
         created_files = generator.generate_all(individuals)
         logger.info(f"Created {len(created_files)} markdown files")

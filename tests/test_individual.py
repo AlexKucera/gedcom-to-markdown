@@ -124,6 +124,7 @@ class TestBirthAndDeath:
         death = john_doe.get_death_info()
         assert death['date'] == '15 JUN 2020'
         assert death['place'] == 'Los Angeles, USA'
+        assert death['year'] == '2020'
 
     def test_get_birth_info_missing(self, sample_gedcom_file):
         """Test birth info when not present."""

@@ -142,8 +142,8 @@ class TestMetadataFormatting:
         file_path = generator.generate_note(john_doe)
         content = file_path.read_text()
 
-        # Death date extraction gets first 4 chars which is "15 J" from "15 JUN 2020"
-        assert '[Lived:: 1950-15 J]' in content or '[Lived:: 1950-2020]' in content
+        # Death year is now extracted robustly using regex
+        assert '[Lived:: 1950-2020]' in content
         assert '[Born:: 1 JAN 1950]' in content
         assert '[Passed away:: 15 JUN 2020]' in content
 

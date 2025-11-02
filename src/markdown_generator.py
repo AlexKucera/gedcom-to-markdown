@@ -29,16 +29,18 @@ class MarkdownGenerator:
         media_subdir: str = "",
         stories_subdir: str = "",
         stories_dir: Optional[Path] = None,
+        use_subdirectories: bool = False,
     ):
         """
         Configure the MarkdownGenerator with paths and optional subdirectories for media and story files.
-        
+
         Parameters:
             output_dir (Path): Directory where markdown notes will be written; must exist and be a directory.
             media_subdir (str): Optional subdirectory name (relative) to prefix media/image paths in notes.
             stories_subdir (str): Optional subdirectory name (relative) to use when constructing wiki links to generated story notes.
             stories_dir (Optional[Path]): Optional directory where story markdown files will be created; defaults to `output_dir` when not provided.
-        
+            use_subdirectories (bool): Whether the output structure uses subdirectories (people/, stories/, media/). When True, WikiLinks and image paths will include appropriate subdirectory prefixes.
+
         Raises:
             ValueError: If `output_dir` does not exist or is not a directory.
         """
@@ -51,6 +53,7 @@ class MarkdownGenerator:
         self.media_subdir = media_subdir
         self.stories_subdir = stories_subdir
         self.stories_dir = stories_dir if stories_dir else output_dir
+        self.use_subdirectories = use_subdirectories
         self.generated_stories = {}  # Track generated story files
 
     def generate_note(self, individual: Individual) -> Path:
@@ -110,7 +113,7 @@ class MarkdownGenerator:
         self._write_metadata(f, "Name", individual.get_full_name())
 
         # Lived years
-        lived = f"{birth['year']}-{death['date'][:4] if death['date'] else ''}"
+        lived = f"{birth['year']}-{death['year']}"
         self._write_metadata(f, "Lived", lived)
 
         self._write_metadata(f, "Sex", individual.get_gender())
@@ -341,9 +344,7 @@ class MarkdownGenerator:
 
             # Link back to the individual
             # If using subdirectories, stories are in stories/ and people are in people/
-            if (
-                self.media_subdir
-            ):  # If using subdirs (media_subdir is set), use path prefix
+            if self.use_subdirectories:
                 person_link = f"[[people/{individual_name}|{individual_name}]]"
             else:
                 person_link = f"[[{individual_name}]]"
@@ -364,8 +365,8 @@ class MarkdownGenerator:
                     for img in section["images"]:
                         title = img["title"] if img["title"] else "Image"
                         filename_img = img["file"]
-                        # Add media subdirectory prefix if specified
-                        if self.media_subdir:
+                        # Add media subdirectory prefix if using subdirectory structure
+                        if self.use_subdirectories and self.media_subdir:
                             image_path = f"../{self.media_subdir}/{filename_img}"
                         else:
                             image_path = filename_img
@@ -483,7 +484,7 @@ class MarkdownGenerator:
                 path = self.generate_note(individual)
                 paths.append(path)
             except Exception as e:
-                logger.error(
+                logger.exception(
                     f"Failed to generate note for {individual.get_full_name()}: {e}"
                 )
 
