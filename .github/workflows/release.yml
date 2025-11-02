@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
 
 jobs:
   create-release:
@@ -17,8 +17,8 @@ jobs:
     - name: Extract version from tag
       id: version
       run: |
-        # Remove 'v' prefix from tag to get version number
-        VERSION=${GITHUB_REF#refs/tags/v}
+        # Extract version number from tag (no 'v' prefix)
+        VERSION=${GITHUB_REF#refs/tags/}
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
 
