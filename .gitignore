@@ -128,3 +128,5 @@ dmypy.json
 examples/
 
 test_output/
+
+output/
