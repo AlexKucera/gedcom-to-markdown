@@ -165,29 +165,60 @@ def convert_gedcom_to_markdown(
         # Copy media files if available
         if media_dir and media_dir.exists():
             logger.info(f"Copying media files to: {media_output_dir}")
-            media_files = []
-            for ext in [
-                "*.jpg",
-                "*.jpeg",
-                "*.png",
-                "*.gif",
-                "*.bmp",
-                "*.JPG",
-                "*.JPEG",
-                "*.PNG",
-                "*.GIF",
-                "*.BMP",
-            ]:
-                # Use rglob to find media files in subdirectories
-                media_files.extend(media_dir.rglob(ext))
+
+            # Allowed media extensions (case-insensitive)
+            allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp'}
 
             copied_count = 0
-            for media_file in media_files:
-                dest = media_output_dir / media_file.name
-                shutil.copy2(media_file, dest)
-                copied_count += 1
+            skipped_count = 0
+            collision_count = 0
 
-            logger.info(f"Copied {copied_count} media files")
+            # Recursively find all files in media_dir
+            for media_file in media_dir.rglob('*'):
+                # Skip directories, only process files
+                if not media_file.is_file():
+                    continue
+
+                # Filter by extension (case-insensitive)
+                if media_file.suffix.lower() not in allowed_extensions:
+                    continue
+
+                # Compute relative path to preserve directory structure
+                relative_path = media_file.relative_to(media_dir)
+                dest = media_output_dir / relative_path
+
+                # Handle filename collisions
+                if dest.exists():
+                    # Generate unique filename with numeric suffix
+                    original_dest = dest
+                    counter = 1
+                    stem = dest.stem
+                    suffix = dest.suffix
+
+                    while dest.exists():
+                        dest = dest.parent / f"{stem}_{counter}{suffix}"
+                        counter += 1
+
+                    logger.warning(
+                        f"Collision detected: {original_dest.name} -> {dest.name}"
+                    )
+                    collision_count += 1
+
+                # Ensure parent directory exists
+                dest.parent.mkdir(parents=True, exist_ok=True)
+
+                # Copy file preserving metadata
+                try:
+                    shutil.copy2(media_file, dest)
+                    copied_count += 1
+                except (IOError, OSError) as e:
+                    logger.error(f"Failed to copy {media_file}: {e}")
+                    skipped_count += 1
+
+            logger.info(
+                f"Copied {copied_count} media files "
+                f"({collision_count} collisions resolved, {skipped_count} skipped)"
+            )
 
         # Generate index
         if create_index:
