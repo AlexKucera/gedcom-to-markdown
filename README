@@ -9,6 +9,7 @@ Convert GEDCOM genealogy files to Obsidian-compatible markdown notes with WikiLi
 - **GEDZIP Support**: Automatically extracts and processes ZIP archives with media files
 - **Automatic Line Ending Fix**: Detects and corrects Mac-style line endings
 - **Organized Directory Structure**: Creates separate subdirectories for people, media, and stories (or flat structure with `--flat` flag)
+- **Canvas Visualization**: Generates Obsidian Canvas files for interactive family tree visualization with generational layout
 - **Complete Individual Notes**: Generates detailed markdown notes for each person
 - **Separate Story Files**: Extracts long-form narratives to individual markdown files with bidirectional linking
 - **WikiLinks**: All relationships use `[[WikiLinks]]` format for Obsidian with proper path prefixes
@@ -155,7 +156,17 @@ src/
 ├── individual.py         # Person data model
 ├── markdown_generator.py # Note generation
 ├── index_generator.py    # Index file creation
+├── canvas_generator.py   # Obsidian Canvas visualization
+├── person_selector.py    # Interactive root person selection
 └── main.py              # CLI entry point
+
+tests/
+├── conftest.py              # Shared test fixtures
+├── test_gedcom_parser.py    # Parser tests
+├── test_individual.py       # Individual model tests
+├── test_markdown_generator.py # Markdown generation tests
+├── test_index_generator.py  # Index generation tests
+└── test_main.py             # CLI integration tests
 ```
 
 ## Requirements
