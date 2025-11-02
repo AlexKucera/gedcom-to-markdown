@@ -95,15 +95,19 @@ def extract_gedzip(zip_path: Path, temp_dir: Path) -> Tuple[Path, Optional[Path]
     gedcom_file = gedcom_files[0]
     logger.info(f"Found GEDCOM file: {gedcom_file.name}")
 
-    # Find media directory (look for common image extensions)
+    # Find media files across the entire extracted tree
     media_dir = None
-    for ext in ["*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp"]:
-        media_files = list(temp_dir.glob(f"**/{ext}"))
-        if media_files:
-            # Get the common parent directory of media files
-            media_dir = media_files[0].parent
-            logger.info(f"Found {len(media_files)} media files in: {media_dir}")
-            break
+    media_files = []
+    for ext in ["*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.JPG", "*.JPEG", "*.PNG", "*.GIF", "*.BMP"]:
+        media_files.extend(temp_dir.rglob(ext))
+
+    if media_files:
+        # Set media_dir to the extraction root so all subdirectories are accessible
+        media_dir = temp_dir
+        # Get unique parent directories for logging
+        unique_dirs = sorted(set(f.parent for f in media_files))
+        logger.info(f"Found {len(media_files)} media files across {len(unique_dirs)} directories")
+        logger.debug(f"Media directories: {[str(d.relative_to(temp_dir)) for d in unique_dirs]}")
 
     return gedcom_file, media_dir
 
@@ -176,7 +180,7 @@ def convert_gedcom_to_markdown(
             return 1
 
         # Wrap individuals in our data model
-        individuals = [Individual(elem, parser) for elem in individual_elements]
+        individuals = [Individual(elem, parser.parser) for elem in individual_elements]
 
         # Generate canvas if requested
         if create_canvas:
@@ -198,6 +202,7 @@ def convert_gedcom_to_markdown(
             media_subdir=media_subdir_name,
             stories_subdir=stories_subdir_name,
             stories_dir=stories_dir,
+            use_subdirectories=not use_flat_structure,
         )
         created_files = generator.generate_all(individuals)
         logger.info(f"Created {len(created_files)} markdown files")
@@ -205,26 +210,60 @@ def convert_gedcom_to_markdown(
         # Copy media files if available
         if media_dir and media_dir.exists():
             logger.info(f"Copying media files to: {media_output_dir}")
-            media_files = []
-            for ext in [
-                "*.jpg",
-                "*.jpeg",
-                "*.png",
-                "*.gif",
-                "*.bmp",
-                "*.JPG",
-                "*.JPEG",
-                "*.PNG",
-            ]:
-                media_files.extend(media_dir.glob(ext))
+
+            # Allowed media extensions (case-insensitive)
+            allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp'}
 
             copied_count = 0
-            for media_file in media_files:
-                dest = media_output_dir / media_file.name
-                shutil.copy2(media_file, dest)
-                copied_count += 1
+            skipped_count = 0
+            collision_count = 0
 
-            logger.info(f"Copied {copied_count} media files")
+            # Recursively find all files in media_dir
+            for media_file in media_dir.rglob('*'):
+                # Skip directories, only process files
+                if not media_file.is_file():
+                    continue
+
+                # Filter by extension (case-insensitive)
+                if media_file.suffix.lower() not in allowed_extensions:
+                    continue
+
+                # Compute relative path to preserve directory structure
+                relative_path = media_file.relative_to(media_dir)
+                dest = media_output_dir / relative_path
+
+                # Handle filename collisions
+                if dest.exists():
+                    # Generate unique filename with numeric suffix
+                    original_dest = dest
+                    counter = 1
+                    stem = dest.stem
+                    suffix = dest.suffix
+
+                    while dest.exists():
+                        dest = dest.parent / f"{stem}_{counter}{suffix}"
+                        counter += 1
+
+                    logger.warning(
+                        f"Collision detected: {original_dest.name} -> {dest.name}"
+                    )
+                    collision_count += 1
+
+                # Ensure parent directory exists
+                dest.parent.mkdir(parents=True, exist_ok=True)
+
+                # Copy file preserving metadata
+                try:
+                    shutil.copy2(media_file, dest)
+                    copied_count += 1
+                except (IOError, OSError) as e:
+                    logger.exception(f"Failed to copy {media_file}")
+                    skipped_count += 1
+
+            logger.info(
+                f"Copied {copied_count} media files "
+                f"({collision_count} collisions resolved, {skipped_count} skipped)"
+            )
 
         # Generate index
         if create_index:
@@ -237,14 +276,14 @@ def convert_gedcom_to_markdown(
         logger.info("Conversion completed successfully")
         return 0
 
-    except FileNotFoundError as e:
-        logger.error(f"File not found: {e}")
+    except FileNotFoundError:
+        logger.exception("File not found")
         return 1
-    except ValueError as e:
-        logger.error(f"Invalid input: {e}")
+    except ValueError:
+        logger.exception("Invalid input")
         return 1
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}", exc_info=True)
+    except Exception:
+        logger.exception("Unexpected error")
         return 1
 
 

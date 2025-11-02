@@ -58,7 +58,7 @@ This will automatically:
 
 By default, the converter creates an **organized directory structure**:
 
-```
+```text
 output/
 ├── Index.md                    # Alphabetical index of all people
 ├── people/                     # Person markdown files
@@ -149,7 +149,7 @@ The `Index.md` file at the root contains an alphabetical listing of all individu
 
 ## Project Structure
 
-```
+```text
 src/
 ├── gedcom_parser.py      # GEDCOM file parsing
 ├── individual.py         # Person data model
@@ -170,7 +170,7 @@ src/
 Some GEDCOM files exported from macOS applications use old Mac-style line endings (CR only). **This is automatically detected and fixed** by the converter.
 
 If you see a warning message like:
-```
+```text
 WARNING - Detected old Mac-style (CR-only) line endings in GEDCOM file.
 Converting to Unix-style (LF) line endings...
 ```

@@ -8,6 +8,7 @@ family tree.
 from pathlib import Path
 from typing import List
 import logging
+import re
 
 from individual import Individual
 
@@ -66,7 +67,7 @@ class IndexGenerator:
             current_letter = ""
 
             for individual in sorted_individuals:
-                first, last = individual.get_names()
+                _, last = individual.get_names()
 
                 # Write letter header if changed
                 if last:
@@ -85,7 +86,11 @@ class IndexGenerator:
 
                 # Format life span
                 if birth_info["year"] or death_info["date"]:
-                    death_year = death_info["date"][:4] if death_info["date"] else ""
+                    death_year = ""
+                    if death_info["date"]:
+                        match = re.search(r"(\d{4})\b", death_info["date"])
+                        if match:
+                            death_year = match.group(1)
                     life_span = f" ({birth_info['year']}-{death_year})"
                 else:
                     life_span = ""

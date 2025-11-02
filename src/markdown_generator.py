@@ -29,16 +29,18 @@ class MarkdownGenerator:
         media_subdir: str = "",
         stories_subdir: str = "",
         stories_dir: Optional[Path] = None,
+        use_subdirectories: bool = False,
     ):
         """
         Configure the MarkdownGenerator with paths and optional subdirectories for media and story files.
-        
+
         Parameters:
             output_dir (Path): Directory where markdown notes will be written; must exist and be a directory.
             media_subdir (str): Optional subdirectory name (relative) to prefix media/image paths in notes.
             stories_subdir (str): Optional subdirectory name (relative) to use when constructing wiki links to generated story notes.
             stories_dir (Optional[Path]): Optional directory where story markdown files will be created; defaults to `output_dir` when not provided.
-        
+            use_subdirectories (bool): Whether the output structure uses subdirectories (people/, stories/, media/). When True, WikiLinks and image paths will include appropriate subdirectory prefixes.
+
         Raises:
             ValueError: If `output_dir` does not exist or is not a directory.
         """
@@ -51,6 +53,7 @@ class MarkdownGenerator:
         self.media_subdir = media_subdir
         self.stories_subdir = stories_subdir
         self.stories_dir = stories_dir if stories_dir else output_dir
+        self.use_subdirectories = use_subdirectories
         self.generated_stories = {}  # Track generated story files
 
     def generate_note(self, individual: Individual) -> Path:
@@ -110,8 +113,9 @@ class MarkdownGenerator:
         self._write_metadata(f, "Name", individual.get_full_name())
 
         # Lived years
-        lived = f"{birth['year']}-{death['date'][:4] if death['date'] else ''}"
-        self._write_metadata(f, "Lived", lived)
+        if birth['year'] or death['year']:
+            lived = f"{birth['year']}-{death['year']}"
+            self._write_metadata(f, "Lived", lived)
 
         self._write_metadata(f, "Sex", individual.get_gender())
 
@@ -181,9 +185,9 @@ class MarkdownGenerator:
     def _write_families(self, f, individual: Individual):
         """
         Write the "Families" section for an individual into the provided file handle.
-        
-        Emits a "## Families" header and, for each family that has a partner, a "Marriage" subsection (numbered when the individual has multiple families). For each marriage the function writes hidden metadata entries for Partner (as a wiki link), Marriage date, Marriage place (if present), and lists each Child as hidden metadata (as wiki links). Adds spacing after each marriage and a trailing blank line after the section. If the individual has no families, nothing is written.
-        
+
+        Emits a "## Families" header and, for each family, a "Marriage" subsection (numbered when the individual has multiple families). For each family the function writes hidden metadata entries for Partner (as a wiki link, if partner is present), Marriage date, Marriage place (if present), and lists each Child as hidden metadata (as wiki links). Adds spacing after each family and a trailing blank line after the section. If the individual has no families, nothing is written.
+
         Parameters:
             f (io.TextIO): Open text file handle to write the section into.
             individual (Individual): The individual whose family records will be written.
@@ -196,28 +200,33 @@ class MarkdownGenerator:
         f.write("## Families\n")
 
         for i, family in enumerate(families, 1):
+            # Always write the Marriage header
+            f.write(f"### Marriage{f' {i}' if len(families) > 1 else ''}\n")
+
+            # Only write partner metadata if partner exists
             if family["partner"]:
                 partner_name = family["partner"].get_file_name()
-                f.write(f"### Marriage {i if len(families) > 1 else ''}\n")
                 self._write_metadata_hidden(f, "Partner", self._wiki_link(partner_name))
 
-                if family["marriage_date"]:
+            # Write marriage metadata if present
+            if family["marriage_date"]:
+                self._write_metadata_hidden(
+                    f, "Marriage date", family["marriage_date"]
+                )
+            if family["marriage_place"]:
+                self._write_metadata_hidden(
+                    f, "Marriage place", family["marriage_place"]
+                )
+
+            # Write children if they exist
+            if family["children"]:
+                f.write("\n**Children:**\n")
+                for child in family["children"]:
                     self._write_metadata_hidden(
-                        f, "Marriage date", family["marriage_date"]
-                    )
-                if family["marriage_place"]:
-                    self._write_metadata_hidden(
-                        f, "Marriage place", family["marriage_place"]
+                        f, "Child", self._wiki_link(child.get_file_name())
                     )
 
-                if family["children"]:
-                    f.write("\n**Children:**\n")
-                    for child in family["children"]:
-                        self._write_metadata_hidden(
-                            f, "Child", self._wiki_link(child.get_file_name())
-                        )
-
-                f.write("\n")
+            f.write("\n")
 
         f.write("\n")
 
@@ -336,9 +345,7 @@ class MarkdownGenerator:
 
             # Link back to the individual
             # If using subdirectories, stories are in stories/ and people are in people/
-            if (
-                self.media_subdir
-            ):  # If using subdirs (media_subdir is set), use path prefix
+            if self.use_subdirectories:
                 person_link = f"[[people/{individual_name}|{individual_name}]]"
             else:
                 person_link = f"[[{individual_name}]]"
@@ -359,8 +366,8 @@ class MarkdownGenerator:
                     for img in section["images"]:
                         title = img["title"] if img["title"] else "Image"
                         filename_img = img["file"]
-                        # Add media subdirectory prefix if specified
-                        if self.media_subdir:
+                        # Add media subdirectory prefix if using subdirectory structure
+                        if self.use_subdirectories and self.media_subdir:
                             image_path = f"../{self.media_subdir}/{filename_img}"
                         else:
                             image_path = filename_img
@@ -477,9 +484,9 @@ class MarkdownGenerator:
             try:
                 path = self.generate_note(individual)
                 paths.append(path)
-            except Exception as e:
-                logger.error(
-                    f"Failed to generate note for {individual.get_full_name()}: {e}"
+            except Exception:
+                logger.exception(
+                    f"Failed to generate note for {individual.get_full_name()}"
                 )
 
         logger.info(f"Successfully generated {len(paths)} notes")

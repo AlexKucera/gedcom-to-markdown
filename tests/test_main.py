@@ -10,14 +10,10 @@ This module tests the command-line interface and main conversion workflow includ
 """
 
 import pytest
-import sys
 import zipfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import main
 from main import (
@@ -127,10 +123,33 @@ class TestGedzipExtraction:
         extract_dir.mkdir()
 
         # Should use the first one and log a warning
-        gedcom_file, media_dir = extract_gedzip(zip_path, extract_dir)
+        gedcom_file, _media_dir = extract_gedzip(zip_path, extract_dir)
 
         assert gedcom_file is not None
         assert gedcom_file.exists()
+
+    def test_extract_gedzip_nested_media(self, temp_dir, sample_gedcom_content):
+        """Test that media files in nested subdirectories are discovered."""
+        zip_path = temp_dir / "nested_media.zip"
+
+        with zipfile.ZipFile(zip_path, 'w') as zf:
+            zf.writestr('family.ged', sample_gedcom_content)
+            # Add media files in multiple nested directories
+            zf.writestr('media/photos/photo1.jpg', b'fake image')
+            zf.writestr('media/documents/scan1.png', b'fake scan')
+            zf.writestr('images/subfolder/deep/photo2.jpg', b'fake image')
+
+        extract_dir = temp_dir / "extracted"
+        extract_dir.mkdir()
+
+        gedcom_file, media_dir = extract_gedzip(zip_path, extract_dir)
+
+        # media_dir should point to extraction root
+        assert media_dir == extract_dir
+
+        # All media files should be discoverable via rglob
+        all_media = list(media_dir.rglob("*.jpg")) + list(media_dir.rglob("*.png"))
+        assert len(all_media) == 3
 
 
 class TestConversionWorkflow:
@@ -452,6 +471,120 @@ class TestMediaFileCopying:
 
         # Should succeed without media
         assert exit_code == 0
+
+    def test_nested_directory_structure_preservation(self, sample_gedcom_file, output_dir, temp_dir):
+        """Test that nested media directory structure is preserved."""
+        media_dir = temp_dir / 'media'
+        media_dir.mkdir()
+
+        # Create nested directory structure
+        (media_dir / 'photos' / 'family').mkdir(parents=True)
+        (media_dir / 'photos' / 'events').mkdir(parents=True)
+        (media_dir / 'documents').mkdir(parents=True)
+
+        # Create files in nested directories
+        (media_dir / 'photos' / 'family' / 'photo1.jpg').write_text('fake image')
+        (media_dir / 'photos' / 'events' / 'photo2.png').write_text('fake image')
+        (media_dir / 'documents' / 'scan.jpg').write_text('fake image')
+
+        exit_code = convert_gedcom_to_markdown(
+            gedcom_file=sample_gedcom_file,
+            output_dir=output_dir,
+            create_index=True,
+            media_dir=media_dir,
+            use_flat_structure=True
+        )
+
+        assert exit_code == 0
+
+        # Verify directory structure is preserved
+        assert (output_dir / 'photos' / 'family' / 'photo1.jpg').exists()
+        assert (output_dir / 'photos' / 'events' / 'photo2.png').exists()
+        assert (output_dir / 'documents' / 'scan.jpg').exists()
+
+    def test_filename_collision_handling(self, sample_gedcom_file, output_dir, temp_dir):
+        """Test that filename collisions are handled with numeric suffixes."""
+        media_dir = temp_dir / 'media'
+        media_dir.mkdir()
+
+        # Create subdirectories with same filenames
+        (media_dir / 'dir1').mkdir()
+        (media_dir / 'dir2').mkdir()
+
+        # Create files with same name in different directories
+        (media_dir / 'dir1' / 'photo.jpg').write_text('image 1')
+        (media_dir / 'dir2' / 'photo.jpg').write_text('image 2')
+
+        exit_code = convert_gedcom_to_markdown(
+            gedcom_file=sample_gedcom_file,
+            output_dir=output_dir,
+            create_index=True,
+            media_dir=media_dir,
+            use_flat_structure=True
+        )
+
+        assert exit_code == 0
+
+        # First file should be copied normally
+        assert (output_dir / 'dir1' / 'photo.jpg').exists()
+
+        # Second file should be copied with preserved structure (no collision)
+        assert (output_dir / 'dir2' / 'photo.jpg').exists()
+
+        # Both files should exist
+        assert len(list(output_dir.rglob('photo*.jpg'))) == 2
+
+    def test_case_insensitive_extensions(self, sample_gedcom_file, output_dir, temp_dir):
+        """Test that extensions are matched case-insensitively."""
+        media_dir = temp_dir / 'media'
+        media_dir.mkdir()
+
+        # Create files with mixed-case extensions
+        (media_dir / 'photo1.JpG').write_text('fake image')
+        (media_dir / 'photo2.PnG').write_text('fake image')
+        (media_dir / 'photo3.GiF').write_text('fake image')
+
+        exit_code = convert_gedcom_to_markdown(
+            gedcom_file=sample_gedcom_file,
+            output_dir=output_dir,
+            create_index=True,
+            media_dir=media_dir,
+            use_flat_structure=True
+        )
+
+        assert exit_code == 0
+
+        # All files should be copied despite mixed case
+        assert (output_dir / 'photo1.JpG').exists()
+        assert (output_dir / 'photo2.PnG').exists()
+        assert (output_dir / 'photo3.GiF').exists()
+
+    def test_non_media_files_ignored(self, sample_gedcom_file, output_dir, temp_dir):
+        """Test that non-media files are ignored."""
+        media_dir = temp_dir / 'media'
+        media_dir.mkdir()
+
+        # Create media and non-media files
+        (media_dir / 'photo.jpg').write_text('fake image')
+        (media_dir / 'readme.txt').write_text('some text')
+        (media_dir / 'data.csv').write_text('some data')
+        (media_dir / 'script.py').write_text('print("hello")')
+
+        exit_code = convert_gedcom_to_markdown(
+            gedcom_file=sample_gedcom_file,
+            output_dir=output_dir,
+            create_index=True,
+            media_dir=media_dir,
+            use_flat_structure=True
+        )
+
+        assert exit_code == 0
+
+        # Only media file should be copied
+        assert (output_dir / 'photo.jpg').exists()
+        assert not (output_dir / 'readme.txt').exists()
+        assert not (output_dir / 'data.csv').exists()
+        assert not (output_dir / 'script.py').exists()
 
 
 class TestTempDirectoryCleanup:

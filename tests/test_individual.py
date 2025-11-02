@@ -11,11 +11,7 @@ This module tests individual person data extraction including:
 """
 
 import pytest
-import sys
 from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from gedcom_parser import GedcomParser
 from individual import Individual
@@ -30,7 +26,7 @@ class TestIndividualBasicInfo:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        return Individual(john[0], parser)
+        return Individual(john[0], parser.parser)
 
     def test_get_id(self, john_doe):
         """Test ID extraction without @ symbols."""
@@ -73,10 +69,10 @@ class TestIndividualBasicInfo:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         filename = person.get_file_name()
-        assert 'Person Noyear' in filename
+        assert 'Person NoYear' in filename  # Preserves original GEDCOM capitalization
         # Should not contain a year
         assert not any(char.isdigit() for char in filename)
 
@@ -100,7 +96,7 @@ class TestIndividualBasicInfo:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         assert person.get_gender() == 'U'
 
@@ -114,7 +110,7 @@ class TestBirthAndDeath:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        return Individual(john[0], parser)
+        return Individual(john[0], parser.parser)
 
     def test_get_birth_info(self, john_doe):
         """Test birth information extraction."""
@@ -128,6 +124,7 @@ class TestBirthAndDeath:
         death = john_doe.get_death_info()
         assert death['date'] == '15 JUN 2020'
         assert death['place'] == 'Los Angeles, USA'
+        assert death['year'] == '2020'
 
     def test_get_birth_info_missing(self, sample_gedcom_file):
         """Test birth info when not present."""
@@ -145,7 +142,7 @@ class TestBirthAndDeath:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         birth = person.get_birth_info()
         assert birth['date'] == ''
@@ -162,7 +159,7 @@ class TestEvents:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        return Individual(john[0], parser)
+        return Individual(john[0], parser.parser)
 
     def test_get_events(self, john_doe):
         """Test event extraction."""
@@ -206,7 +203,7 @@ class TestEvents:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         events = person.get_events()
         event_types = [e['type'] for e in events]
@@ -232,7 +229,7 @@ class TestFamilyRelationships:
         individuals = parsed_gedcom.get_individuals()
         # Alice (I3) should have parents John (I1) and Jane (I2)
         alice = [ind for ind in individuals if 'Alice' in str(ind.get_name())]
-        alice_obj = Individual(alice[0], parsed_gedcom)
+        alice_obj = Individual(alice[0], parsed_gedcom.parser)
 
         parents = alice_obj.get_parents()
         assert len(parents) == 2
@@ -246,7 +243,7 @@ class TestFamilyRelationships:
         individuals = parsed_gedcom.get_individuals()
         # John (I1) should have child Alice (I3)
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parsed_gedcom)
+        john_obj = Individual(john[0], parsed_gedcom.parser)
 
         children = john_obj.get_children()
         assert len(children) >= 1
@@ -259,7 +256,7 @@ class TestFamilyRelationships:
         individuals = parsed_gedcom.get_individuals()
         # John (I1) should have partner Jane (I2)
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parsed_gedcom)
+        john_obj = Individual(john[0], parsed_gedcom.parser)
 
         partners = john_obj.get_partners()
         assert len(partners) >= 1
@@ -271,7 +268,7 @@ class TestFamilyRelationships:
         """Test family data extraction including marriage info."""
         individuals = parsed_gedcom.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parsed_gedcom)
+        john_obj = Individual(john[0], parsed_gedcom.parser)
 
         families = john_obj.get_families()
         assert len(families) >= 1
@@ -292,7 +289,7 @@ class TestImagesAndMedia:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         images = john_obj.get_images()
         assert len(images) >= 1
@@ -318,7 +315,7 @@ class TestImagesAndMedia:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         images = person.get_images()
         assert len(images) == 0
@@ -332,7 +329,7 @@ class TestNotes:
         parser = GedcomParser(sample_gedcom_file)
         individuals = parser.get_individuals()
         john = [ind for ind in individuals if 'John' in str(ind.get_name())]
-        john_obj = Individual(john[0], parser)
+        john_obj = Individual(john[0], parser.parser)
 
         notes = john_obj.get_notes()
         assert len(notes) >= 1
@@ -357,7 +354,7 @@ class TestNotes:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         notes = person.get_notes()
         assert len(notes) >= 1
@@ -380,7 +377,7 @@ class TestNotes:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         notes = person.get_notes()
         assert len(notes) == 0
@@ -396,7 +393,7 @@ class TestStories:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         stories = person.get_stories()
 
@@ -421,7 +418,7 @@ class TestStories:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         stories = person.get_stories()
         assert len(stories) == 0
@@ -437,7 +434,7 @@ class TestAttributes:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         attrs = person.get_attributes()
         assert attrs['eyes'] == 'Blue'
@@ -460,7 +457,7 @@ class TestAttributes:
 
         parser = GedcomParser(temp_file)
         individuals = parser.get_individuals()
-        person = Individual(individuals[0], parser)
+        person = Individual(individuals[0], parser.parser)
 
         attrs = person.get_attributes()
         assert len(attrs) == 0

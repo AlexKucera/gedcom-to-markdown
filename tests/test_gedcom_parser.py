@@ -9,11 +9,7 @@ This module tests GEDCOM file parsing functionality including:
 """
 
 import pytest
-import sys
 from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from gedcom_parser import GedcomParser
 
@@ -61,7 +57,7 @@ class TestLineEndingFixes:
         assert b'\r' in original_content  # Has CR
 
         # Parse the file (should trigger line ending fix)
-        parser = GedcomParser(sample_gedcom_cr_only)
+        _parser = GedcomParser(sample_gedcom_cr_only)
 
         # Read the fixed content
         fixed_content = sample_gedcom_cr_only.read_bytes()
@@ -75,7 +71,7 @@ class TestLineEndingFixes:
         original_size = len(original_content)
 
         # Parse the file
-        parser = GedcomParser(sample_gedcom_file)
+        _parser = GedcomParser(sample_gedcom_file)
 
         # Content should be unchanged
         new_content = sample_gedcom_file.read_bytes()
