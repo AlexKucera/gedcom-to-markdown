@@ -19,38 +19,56 @@ from gedcom_parser import GedcomParser
 from individual import Individual
 from markdown_generator import MarkdownGenerator
 from index_generator import IndexGenerator
+from canvas_generator import CanvasGenerator
+from person_selector import select_root_person
 
 
 def setup_logging(verbose: bool = False):
     """
     Configure root logger formatting and level for the application.
-    
-    Sets the logging level to DEBUG when `verbose` is True, otherwise to INFO.
-    Also applies a consistent message format and timestamp date format used across the application.
-    
+
+    Sets the logging level to DEBUG when `verbose` is True, otherwise to INFO
+    for the main module only and WARNING for other modules.
+    Also applies a consistent message format and timestamp date format used
+    across the application.
+
     Parameters:
-        verbose (bool): When True, enable DEBUG-level logging; otherwise use INFO-level logging.
+        verbose (bool): When True, enable DEBUG-level logging for all modules;
+        otherwise use INFO-level logging for main module only.
     """
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    if verbose:
+        # Show all logs from all modules
+        level = logging.DEBUG
+        logging.basicConfig(
+            level=level,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    else:
+        # Only show INFO from main module, WARNING+ from others
+        logging.basicConfig(
+            level=logging.WARNING,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        # Enable INFO logging for main module only
+        logging.getLogger(__name__).setLevel(logging.INFO)
 
 
 def extract_gedzip(zip_path: Path, temp_dir: Path) -> Tuple[Path, Optional[Path]]:
     """
-    Extracts a ZIP/GEDZIP archive and locates the GEDCOM file and an optional media directory.
-    
-    Searches the extracted contents for the first `.ged` file and for image files (jpg, jpeg, png, gif, bmp)
-    to identify a media directory.
-    
+    Extracts a ZIP/GEDZIP archive and locates the GEDCOM file and an optional
+    media directory.
+
+    Searches the extracted contents for the first `.ged` file and for image
+    files (jpg, jpeg, png, gif, bmp) to identify a media directory.
+
     Returns:
-        A tuple `(gedcom_file_path, media_directory_path)` where `gedcom_file_path` is the path to the found
-        GEDCOM file and `media_directory_path` is the path to the directory containing media files or `None`
-        if no media files were found.
-    
+        A tuple `(gedcom_file_path, media_directory_path)` where
+        `gedcom_file_path` is the path to the found GEDCOM file and
+        `media_directory_path` is the path to the directory containing media
+        files or `None` if no media files were found.
+
     Raises:
         ValueError: If no GEDCOM (`.ged`) file is found in the archive.
     """
@@ -100,17 +118,30 @@ def convert_gedcom_to_markdown(
     create_index: bool = True,
     media_dir: Optional[Path] = None,
     use_flat_structure: bool = False,
+    create_canvas: bool = False,
+    root_id: Optional[str] = None,
 ) -> int:
     """
     Convert a GEDCOM file into Obsidian-compatible Markdown notes organized on disk.
-    
+
     Parameters:
         gedcom_file (Path): Path to the input GEDCOM file.
-        output_dir (Path): Directory where generated markdown, media, and story files will be written.
-        create_index (bool): Whether to generate an index file linking the generated person notes.
-        media_dir (Optional[Path]): Optional source directory of media files to copy into the output media directory.
-        use_flat_structure (bool): If True, write all outputs directly into `output_dir`; if False, create subdirectories (`people/`, `media/`, `stories/`).
-    
+        output_dir (Path): Directory where generated markdown, media, and
+            story files will be written.
+        create_index (bool): Whether to generate an index file linking the
+            generated person notes.
+        media_dir (Optional[Path]): Optional source directory of media files
+            to copy into the output media directory.
+        use_flat_structure (bool): If True, write all outputs directly into
+            `output_dir`; if False, create subdirectories (`people/`,
+            `media/`, `stories/`).
+        create_canvas (bool): Whether to generate an Obsidian canvas file for
+            family tree visualization.
+        root_id (Optional[str]): Root person identifier for canvas generation.
+            Can be a selection number (e.g., '85') or GEDCOM ID (e.g.,
+            '@I253884714@' or 'I253884714'). If not provided and create_canvas
+            is True, will prompt interactively.
+
     Returns:
         int: 0 on success, 1 on failure.
     """
@@ -150,6 +181,19 @@ def convert_gedcom_to_markdown(
 
         # Wrap individuals in our data model
         individuals = [Individual(elem, parser.parser) for elem in individual_elements]
+
+        # Generate canvas if requested
+        if create_canvas:
+            logger.info("Canvas generation requested")
+            root_person_id = select_root_person(individuals, root_id)
+
+            if root_person_id:
+                logger.info(f"Generating canvas with root person: {root_person_id}")
+                canvas_gen = CanvasGenerator(individuals, str(output_dir))
+                canvas_path = canvas_gen.generate_canvas(root_person_id)
+                logger.info(f"Canvas created: {canvas_path}")
+            else:
+                logger.warning("No root person selected, skipping canvas generation")
 
         # Generate markdown notes
         logger.info(f"Generating markdown notes in: {people_dir}")
@@ -245,10 +289,13 @@ def convert_gedcom_to_markdown(
 
 def main():
     """
-    Run the command-line interface to convert a GEDCOM or GEDZIP archive into Obsidian-compatible Markdown notes.
-    
-    Parses CLI arguments, prepares input and output paths (extracting archives to a temporary directory when needed), invokes the conversion process, and cleans up any temporary files.
-    
+    Run the command-line interface to convert a GEDCOM or GEDZIP archive
+    into Obsidian-compatible Markdown notes.
+
+    Parses CLI arguments, prepares input and output paths (extracting
+    archives to a temporary directory when needed), invokes the conversion
+    process, and cleans up any temporary files.
+
     Returns:
         int: Exit code where `0` indicates success and `1` indicates failure.
     """
@@ -283,6 +330,19 @@ def main():
 
     parser.add_argument(
         "--no-index", action="store_true", help="Do not create an index file"
+    )
+
+    parser.add_argument(
+        "--canvas",
+        action="store_true",
+        help="Create an Obsidian canvas file for family tree visualization",
+    )
+
+    parser.add_argument(
+        "--root",
+        type=str,
+        metavar="ID",
+        help="Root person for canvas. Can be a selection number (e.g., 85) or GEDCOM ID (e.g., @I253884714@). If not provided, will prompt interactively.",
     )
 
     parser.add_argument(
@@ -322,6 +382,8 @@ def main():
             create_index=not args.no_index,
             media_dir=media_dir,
             use_flat_structure=args.flat,
+            create_canvas=args.canvas,
+            root_id=args.root,
         )
 
         return exit_code

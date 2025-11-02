@@ -85,6 +85,8 @@ python src/main.py -i family.zip -o output --flat
 - `-o`, `--output DIR`: Output directory for generated notes (required)
 - `--flat`: Use flat structure (all files in output root). Default creates subdirectories
 - `--no-index`: Skip creating the index file
+- `--canvas`: Create an Obsidian canvas file for family tree visualization
+- `--root ID`: Root person for canvas. Can be a selection number (e.g., `85`) or GEDCOM ID (e.g., `@I253884714@` or `I253884714`). If not provided with `--canvas`, will prompt interactively
 - `--verbose` or `-v`: Enable detailed logging
 
 ### Examples
@@ -99,7 +101,22 @@ python src/main.py -i examples/family.zip -o examples/output --verbose
 python src/main.py -i examples/family.ged -o examples/output --flat --verbose
 ```
 
-**Using long-form arguments:**
+**Generate family tree canvas with specific root person (by selection number):**
+```bash
+python src/main.py -i family.ged -o output --canvas --root 85
+```
+
+**Generate canvas with specific root person (by GEDCOM ID):**
+```bash
+python src/main.py -i family.ged -o output --canvas --root @I253884714@
+```
+
+**Generate canvas with interactive root person selection:**
+```bash
+python src/main.py -i family.ged -o output --canvas
+```
+
+**Using long form arguments:**
 ```bash
 python src/main.py --input examples/family.zip --output examples/output
 ```
