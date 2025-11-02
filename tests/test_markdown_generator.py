@@ -10,11 +10,7 @@ This module tests Obsidian markdown note generation including:
 """
 
 import pytest
-import sys
 from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from gedcom_parser import GedcomParser
 from individual import Individual

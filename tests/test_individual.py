@@ -11,11 +11,7 @@ This module tests individual person data extraction including:
 """
 
 import pytest
-import sys
 from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from gedcom_parser import GedcomParser
 from individual import Individual

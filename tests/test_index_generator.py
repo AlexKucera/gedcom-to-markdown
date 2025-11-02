@@ -10,11 +10,7 @@ This module tests index file generation including:
 """
 
 import pytest
-import sys
 from pathlib import Path
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from gedcom_parser import GedcomParser
 from individual import Individual
@@ -269,9 +265,8 @@ class TestLifeSpanFormatting:
         index_path = generator.generate_index(individuals_with_dates)
         content = index_path.read_text()
 
-        # Death date extraction gets first 4 chars: "15 J" from "15 JUN 2020"
-        # This is actually a bug in the code but we test actual behavior
-        assert '(1950-' in content  # Just verify birth year is present
+        # Death date "15 JUN 2020" should extract year "2020"
+        assert '(1950-2020)' in content
 
     def test_life_span_with_only_birth(self, temp_dir, output_dir):
         """Test life span with only birth date."""
@@ -327,6 +322,36 @@ class TestLifeSpanFormatting:
         assert len(lines) > 0
         # Line should end with WikiLink, not life span
         assert not lines[0].strip().endswith(')')
+
+    def test_death_year_extraction_from_day_first_format(self, temp_dir, output_dir):
+        """Test that death year is correctly extracted when date starts with day."""
+        gedcom_content = """0 HEAD
+1 SOUR TestApp
+1 GEDC
+2 VERS 5.5.1
+1 CHAR UTF-8
+0 @I1@ INDI
+1 NAME Test /Person/
+1 BIRT
+2 DATE 1950
+1 DEAT
+2 DATE 15 JUN 2020
+0 TRLR
+"""
+        temp_file = temp_dir / "day_first.ged"
+        temp_file.write_text(gedcom_content, encoding='utf-8')
+
+        parser = GedcomParser(temp_file)
+        elements = parser.get_individuals()
+        individuals = [Individual(elem, parser) for elem in elements]
+
+        generator = IndexGenerator(output_dir)
+        index_path = generator.generate_index(individuals)
+        content = index_path.read_text()
+
+        # Should show (1950-2020), not (1950-15 J)
+        assert '(1950-2020)' in content
+        assert '15 J' not in content
 
 
 class TestIndexStatistics:

@@ -10,14 +10,10 @@ This module tests the command-line interface and main conversion workflow includ
 """
 
 import pytest
-import sys
 import zipfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 import main
 from main import (
