@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version from tag
+      id: version
+      run: |
+        # Remove 'v' prefix from tag to get version number
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+
+    - name: Extract changelog for this version
+      id: changelog
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+
+        # Extract the section for this version from CHANGELOG.md
+        # This captures everything between ## [VERSION] and the next ## [ or end of file
+        CHANGELOG=$(awk -v ver="$VERSION" '
+          /^## \['"$VERSION"'\]/ { found=1; next }
+          found && /^## \[/ { exit }
+          found { print }
+        ' CHANGELOG.md)
+
+        # If changelog is empty, provide a default message
+        if [ -z "$CHANGELOG" ]; then
+          CHANGELOG="See [CHANGELOG.md](CHANGELOG.md) for details."
+        fi
+
+        # Write to output using heredoc to handle multiline content
+        {
+          echo 'notes<<EOF'
+          echo "$CHANGELOG"
+          echo EOF
+        } >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        name: ${{ steps.version.outputs.version }}
+        body: ${{ steps.changelog.outputs.notes }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
