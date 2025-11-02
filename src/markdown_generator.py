@@ -181,9 +181,9 @@ class MarkdownGenerator:
     def _write_families(self, f, individual: Individual):
         """
         Write the "Families" section for an individual into the provided file handle.
-        
-        Emits a "## Families" header and, for each family that has a partner, a "Marriage" subsection (numbered when the individual has multiple families). For each marriage the function writes hidden metadata entries for Partner (as a wiki link), Marriage date, Marriage place (if present), and lists each Child as hidden metadata (as wiki links). Adds spacing after each marriage and a trailing blank line after the section. If the individual has no families, nothing is written.
-        
+
+        Emits a "## Families" header and, for each family, a "Marriage" subsection (numbered when the individual has multiple families). For each family the function writes hidden metadata entries for Partner (as a wiki link, if partner is present), Marriage date, Marriage place (if present), and lists each Child as hidden metadata (as wiki links). Adds spacing after each family and a trailing blank line after the section. If the individual has no families, nothing is written.
+
         Parameters:
             f (io.TextIO): Open text file handle to write the section into.
             individual (Individual): The individual whose family records will be written.
@@ -196,28 +196,33 @@ class MarkdownGenerator:
         f.write("## Families\n")
 
         for i, family in enumerate(families, 1):
+            # Always write the Marriage header
+            f.write(f"### Marriage {i if len(families) > 1 else ''}\n")
+
+            # Only write partner metadata if partner exists
             if family["partner"]:
                 partner_name = family["partner"].get_file_name()
-                f.write(f"### Marriage {i if len(families) > 1 else ''}\n")
                 self._write_metadata_hidden(f, "Partner", self._wiki_link(partner_name))
 
-                if family["marriage_date"]:
+            # Write marriage metadata if present
+            if family["marriage_date"]:
+                self._write_metadata_hidden(
+                    f, "Marriage date", family["marriage_date"]
+                )
+            if family["marriage_place"]:
+                self._write_metadata_hidden(
+                    f, "Marriage place", family["marriage_place"]
+                )
+
+            # Write children if they exist
+            if family["children"]:
+                f.write("\n**Children:**\n")
+                for child in family["children"]:
                     self._write_metadata_hidden(
-                        f, "Marriage date", family["marriage_date"]
-                    )
-                if family["marriage_place"]:
-                    self._write_metadata_hidden(
-                        f, "Marriage place", family["marriage_place"]
+                        f, "Child", self._wiki_link(child.get_file_name())
                     )
 
-                if family["children"]:
-                    f.write("\n**Children:**\n")
-                    for child in family["children"]:
-                        self._write_metadata_hidden(
-                            f, "Child", self._wiki_link(child.get_file_name())
-                        )
-
-                f.write("\n")
+            f.write("\n")
 
         f.write("\n")
 
