@@ -85,8 +85,12 @@ class TestNoteGeneration:
         file_path = generator.generate_note(john_doe)
         content = file_path.read_text()
 
+        # Check for YAML frontmatter
+        assert content.startswith('---\n')
+        assert 'ID: I1' in content
+
         # Check for main sections
-        assert '## Attributes' in content
+        assert '# John Doe' in content
         assert '## Life Events' in content or '## Families' in content
 
     def test_generate_all(self, generator, sample_gedcom_file):
@@ -119,14 +123,14 @@ class TestMetadataFormatting:
         return Individual(john[0], parser.parser)
 
     def test_visible_metadata(self, generator, john_doe):
-        """Test visible metadata format [key:: value]."""
+        """Test YAML frontmatter format."""
         file_path = generator.generate_note(john_doe)
         content = file_path.read_text()
 
-        # Check for visible metadata in Attributes section
-        assert '[ID:: I1]' in content
-        assert '[Name:: John Doe]' in content
-        assert '[Sex:: M]' in content
+        # Check for YAML frontmatter metadata
+        assert 'ID: I1' in content
+        assert 'Name: John Doe' in content
+        assert 'Sex: M' in content
 
     def test_hidden_metadata_for_families(self, generator, john_doe):
         """Test hidden metadata format (key:: value) in families."""
@@ -138,14 +142,14 @@ class TestMetadataFormatting:
             assert '(Partner:: [[Jane Smith 1952]])' in content or '(Partner::' in content
 
     def test_birth_death_metadata(self, generator, john_doe):
-        """Test birth and death metadata."""
+        """Test birth and death metadata in YAML frontmatter."""
         file_path = generator.generate_note(john_doe)
         content = file_path.read_text()
 
-        # Death year is now extracted robustly using regex
-        assert '[Lived:: 1950-2020]' in content
-        assert '[Born:: 1 JAN 1950]' in content
-        assert '[Passed away:: 15 JUN 2020]' in content
+        # Check for YAML frontmatter birth/death data
+        assert 'Lived: 1950-2020' in content
+        assert 'Born: 1 JAN 1950' in content
+        assert 'Passed away: 15 JUN 2020' in content
 
 
 class TestWikiLinks:

@@ -27,14 +27,17 @@ class TestLoggingSetup:
     """Tests for logging configuration."""
 
     def test_setup_logging_default(self):
-        """Test default logging setup (INFO level)."""
+        """Test default logging setup (WARNING level for root, INFO for __main__)."""
         import logging
         # Clear any existing handlers
         logging.root.handlers.clear()
         setup_logging(verbose=False)
-        # Check root logger level
+        # Check root logger level (should be WARNING for non-verbose)
         root_logger = logging.getLogger()
-        assert root_logger.level <= logging.INFO
+        assert root_logger.level == logging.WARNING
+        # Main module logger should be INFO
+        main_logger = logging.getLogger('__main__')
+        assert main_logger.level == logging.INFO or main_logger.level == 0  # 0 means NOTSET (inherits from parent)
 
     def test_setup_logging_verbose(self):
         """Test verbose logging setup (DEBUG level)."""
