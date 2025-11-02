@@ -128,6 +128,29 @@ class TestGedzipExtraction:
         assert gedcom_file is not None
         assert gedcom_file.exists()
 
+    def test_extract_gedzip_nested_media(self, temp_dir, sample_gedcom_content):
+        """Test that media files in nested subdirectories are discovered."""
+        zip_path = temp_dir / "nested_media.zip"
+
+        with zipfile.ZipFile(zip_path, 'w') as zf:
+            zf.writestr('family.ged', sample_gedcom_content)
+            # Add media files in multiple nested directories
+            zf.writestr('media/photos/photo1.jpg', b'fake image')
+            zf.writestr('media/documents/scan1.png', b'fake scan')
+            zf.writestr('images/subfolder/deep/photo2.jpg', b'fake image')
+
+        extract_dir = temp_dir / "extracted"
+        extract_dir.mkdir()
+
+        gedcom_file, media_dir = extract_gedzip(zip_path, extract_dir)
+
+        # media_dir should point to extraction root
+        assert media_dir == extract_dir
+
+        # All media files should be discoverable via rglob
+        all_media = list(media_dir.rglob("*.jpg")) + list(media_dir.rglob("*.png"))
+        assert len(all_media) == 3
+
 
 class TestConversionWorkflow:
     """Tests for the main conversion workflow."""

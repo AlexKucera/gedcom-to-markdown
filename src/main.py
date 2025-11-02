@@ -77,15 +77,19 @@ def extract_gedzip(zip_path: Path, temp_dir: Path) -> Tuple[Path, Optional[Path]
     gedcom_file = gedcom_files[0]
     logger.info(f"Found GEDCOM file: {gedcom_file.name}")
 
-    # Find media directory (look for common image extensions)
+    # Find media files across the entire extracted tree
     media_dir = None
-    for ext in ["*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp"]:
-        media_files = list(temp_dir.glob(f"**/{ext}"))
-        if media_files:
-            # Get the common parent directory of media files
-            media_dir = media_files[0].parent
-            logger.info(f"Found {len(media_files)} media files in: {media_dir}")
-            break
+    media_files = []
+    for ext in ["*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp", "*.JPG", "*.JPEG", "*.PNG", "*.GIF", "*.BMP"]:
+        media_files.extend(temp_dir.rglob(ext))
+
+    if media_files:
+        # Set media_dir to the extraction root so all subdirectories are accessible
+        media_dir = temp_dir
+        # Get unique parent directories for logging
+        unique_dirs = sorted(set(f.parent for f in media_files))
+        logger.info(f"Found {len(media_files)} media files across {len(unique_dirs)} directories")
+        logger.debug(f"Media directories: {[str(d.relative_to(temp_dir)) for d in unique_dirs]}")
 
     return gedcom_file, media_dir
 
@@ -171,8 +175,11 @@ def convert_gedcom_to_markdown(
                 "*.JPG",
                 "*.JPEG",
                 "*.PNG",
+                "*.GIF",
+                "*.BMP",
             ]:
-                media_files.extend(media_dir.glob(ext))
+                # Use rglob to find media files in subdirectories
+                media_files.extend(media_dir.rglob(ext))
 
             copied_count = 0
             for media_file in media_files:
