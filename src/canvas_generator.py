@@ -196,6 +196,10 @@ class CanvasGenerator:
         positions[root_id] = (0, 0)
         processed = {root_id}
 
+        # Shared dict to track next available y position at each x coordinate
+        # This prevents overlaps when multiple family branches use the same x
+        shared_min_y_at_x = {}
+
         # Determine direction based on gender
         # Male: grow upward (negative y), Female: grow downward (positive y)
         root_individual = tree_structure[root_id]['individual']
@@ -221,13 +225,13 @@ class CanvasGenerator:
                 # Position spouse's siblings and their families
                 self._position_spouse_siblings(spouse_id, 0, spouse_y, tree_structure, positions, processed, spouse_direction)
                 # Position spouse's ancestors (parents, grandparents, etc.) to the RIGHT
-                self._layout_ancestors_right(spouse_id, tree_structure, positions, processed, spouse_direction)
+                self._layout_ancestors_right(spouse_id, tree_structure, positions, processed, spouse_direction, shared_min_y_at_x)
 
         # Layout descendants (children) to the LEFT
         self._layout_descendants_left(root_id, tree_structure, positions, processed)
 
         # Layout ancestors (parents) to the RIGHT
-        self._layout_ancestors_right(root_id, tree_structure, positions, processed, root_direction)
+        self._layout_ancestors_right(root_id, tree_structure, positions, processed, root_direction, shared_min_y_at_x)
 
         # Position any remaining unprocessed people
         unprocessed = set(tree_structure.keys()) - processed
@@ -324,6 +328,8 @@ class CanvasGenerator:
                     # Position spouse's siblings and their families
                     self._position_spouse_siblings(spouse_id, child_x, spouse_y, tree_structure, positions, processed, spouse_direction)
                     # Position spouse's ancestors (parents, grandparents, etc.)
+                    # Note: we don't pass shared_min_y_at_x here because this is from _layout_descendants_left
+                    # which doesn't have access to it. This could cause overlaps for deep trees.
                     self._layout_ancestors_right(spouse_id, tree_structure, positions, processed, spouse_direction)
 
             # Recursively layout this child's descendants (further left)
@@ -338,7 +344,8 @@ class CanvasGenerator:
         tree_structure: Dict[str, Dict],
         positions: Dict[str, Tuple[int, int]],
         processed: set,
-        direction: str = 'down'
+        direction: str = 'down',
+        min_y_at_x: Dict[int, float] = None
     ):
         """
         Layout ancestors to the right of root person with vertical sibling stacking.
@@ -348,12 +355,14 @@ class CanvasGenerator:
 
         Args:
             direction: 'up' to grow upward (negative y), 'down' to grow downward (positive y)
+            min_y_at_x: Shared dict tracking next available y at each x position
         """
         if root_id not in tree_structure or root_id not in positions:
             return
 
-        # Track minimum available y-coordinate at each x-position to avoid overlaps
-        min_y_at_x = {}
+        # Initialize if not provided
+        if min_y_at_x is None:
+            min_y_at_x = {}
 
         # Process only this person's parents (not spouse's)
         # Spouse's parents will be processed in their own call with their own direction
@@ -377,10 +386,12 @@ class CanvasGenerator:
             father_id, mother_id = parents[0], parents[1]
 
             # Check if we need to avoid overlap at this x-position
-            if parent_x in min_y_at_x:
-                # Position relative to existing people at this x-coordinate
-                parent_y = min_y_at_x[parent_x]
-                logger.info(f"Using min_y_at_x for x={parent_x}: y={parent_y}, direction={direction}")
+            # Use (x, direction) as key to track upward and downward growth separately
+            key = (parent_x, direction)
+            if key in min_y_at_x:
+                # Position relative to existing people at this x-coordinate going this direction
+                parent_y = min_y_at_x[key]
+                logger.info(f"Using min_y_at_x for x={parent_x}, dir={direction}: y={parent_y}")
             else:
                 # Center parent couple on their child
                 parent_y = person_y
@@ -389,6 +400,8 @@ class CanvasGenerator:
             if father_id in tree_structure and father_id not in processed:
                 positions[father_id] = (parent_x, parent_y)
                 processed.add(father_id)
+                father_name = tree_structure[father_id]['individual'].get_names()
+                logger.info(f"Positioned father {father_name} at ({parent_x}, {parent_y})")
 
             mother_y = parent_y  # Default if mother doesn't exist
             if mother_id in tree_structure and mother_id not in processed:
@@ -396,8 +409,31 @@ class CanvasGenerator:
                     mother_y = parent_y - self.IMAGE_HEIGHT - self.COUPLE_SPACING
                 else:
                     mother_y = parent_y + self.IMAGE_HEIGHT + self.COUPLE_SPACING
+
+                # Check if we need to avoid overlap at this position
+                key = (parent_x, direction)
+                if key in min_y_at_x:
+                    if direction == 'up':
+                        # For upward growth, ensure mother is above the min_y
+                        if mother_y > min_y_at_x[key]:
+                            mother_y = min_y_at_x[key] - self.IMAGE_HEIGHT - self.COUPLE_SPACING
+                            logger.info(f"Adjusted mother position to avoid overlap: y={mother_y}")
+                    else:
+                        # For downward growth, ensure mother is below the min_y
+                        if mother_y < min_y_at_x[key]:
+                            mother_y = min_y_at_x[key] + self.IMAGE_HEIGHT + self.COUPLE_SPACING
+                            logger.info(f"Adjusted mother position to avoid overlap: y={mother_y}")
+
                 positions[mother_id] = (parent_x, mother_y)
                 processed.add(mother_id)
+
+                # Update min_y_at_x to include the mother's position
+                if direction == 'up':
+                    min_y_at_x[key] = mother_y - self.SIBLING_SPACING - self.IMAGE_HEIGHT
+                    logger.info(f"Updated min_y_at_x[{key}] = {min_y_at_x[key]} after positioning mother")
+                else:
+                    min_y_at_x[key] = mother_y + self.IMAGE_HEIGHT + self.SIBLING_SPACING
+                    logger.info(f"Updated min_y_at_x[{key}] = {min_y_at_x[key]} after positioning mother")
 
             # Position siblings of both parents at same x-position, stacked vertically
             if direction == 'up':
@@ -411,6 +447,8 @@ class CanvasGenerator:
                 if sibling_id in tree_structure and sibling_id not in processed:
                     positions[sibling_id] = (parent_x, current_sibling_y)
                     processed.add(sibling_id)
+                    sibling_name = tree_structure[sibling_id]['individual'].get_names()
+                    logger.info(f"Positioned father sibling {sibling_name} at ({parent_x}, {current_sibling_y})")
 
                     # Position sibling's spouse
                     sibling_data = tree_structure[sibling_id]
@@ -484,21 +522,47 @@ class CanvasGenerator:
                     self._layout_descendants_left(sibling_id, tree_structure, positions, processed)
 
             # Update the minimum y for this x-position for next iteration
-            min_y_at_x[parent_x] = current_sibling_y
+            key = (parent_x, direction)
+            min_y_at_x[key] = current_sibling_y
 
             # Recursively position their ancestors (further right)
             # Process both parents' ancestors (maintain same direction)
             if father_id in tree_structure:
-                self._layout_ancestors_right(father_id, tree_structure, positions, processed, direction)
+                self._layout_ancestors_right(father_id, tree_structure, positions, processed, direction, min_y_at_x)
             if mother_id in tree_structure:
-                self._layout_ancestors_right(mother_id, tree_structure, positions, processed, direction)
+                self._layout_ancestors_right(mother_id, tree_structure, positions, processed, direction, min_y_at_x)
 
         elif len(parents) == 1:
             parent_id = parents[0]
             if parent_id in tree_structure and parent_id not in processed:
-                positions[parent_id] = (parent_x, person_y)
+                parent_name = tree_structure[parent_id]['individual'].get_names()
+
+                # Check if we need to avoid overlap at this position
+                key = (parent_x, direction)
+                parent_y = person_y
+                if key in min_y_at_x:
+                    if direction == 'up':
+                        # For upward growth, ensure parent is above the min_y
+                        if parent_y > min_y_at_x[key]:
+                            parent_y = min_y_at_x[key] - self.IMAGE_HEIGHT - self.SIBLING_SPACING
+                            logger.info(f"Adjusted single parent position to avoid overlap: y={parent_y}")
+                    else:
+                        # For downward growth, ensure parent is below the min_y
+                        if parent_y < min_y_at_x[key]:
+                            parent_y = min_y_at_x[key] + self.IMAGE_HEIGHT + self.SIBLING_SPACING
+                            logger.info(f"Adjusted single parent position to avoid overlap: y={parent_y}")
+
+                logger.info(f"Single parent case: positioning {parent_name} at ({parent_x}, {parent_y})")
+                positions[parent_id] = (parent_x, parent_y)
                 processed.add(parent_id)
-                self._layout_ancestors_right(parent_id, tree_structure, positions, processed, direction)
+
+                # Update min_y_at_x to include this parent's position
+                if direction == 'up':
+                    min_y_at_x[key] = parent_y - self.IMAGE_HEIGHT - self.SIBLING_SPACING
+                else:
+                    min_y_at_x[key] = parent_y + self.IMAGE_HEIGHT + self.SIBLING_SPACING
+
+                self._layout_ancestors_right(parent_id, tree_structure, positions, processed, direction, min_y_at_x)
 
     def _calculate_family_height(
         self,
