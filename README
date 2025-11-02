@@ -1,28 +1,65 @@
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/AlexKucera/gedcom-to-markdown?utm_source=oss&utm_medium=github&utm_campaign=AlexKucera%2Fgedcom-to-markdown&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+<div align="center">
+
+![Family Tree Header](assets/header.jpg)
 
 # GEDCOM to Markdown Converter
 
-Convert GEDCOM genealogy files to Obsidian-compatible markdown notes with WikiLinks.
+**Convert GEDCOM genealogy files to Obsidian-compatible markdown notes with WikiLinks**
+
+[![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-pytest-orange.svg)](tests/)
+[![Code Coverage](https://img.shields.io/badge/coverage-monitored-brightgreen.svg)](.coverage)
+[![CodeRabbit Reviews](https://img.shields.io/coderabbit/prs/github/AlexKucera/gedcom-to-markdown?utm_source=oss&utm_medium=github&utm_campaign=AlexKucera%2Fgedcom-to-markdown&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit)](https://coderabbit.ai)
+
+[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Examples](#examples) • [Documentation](#project-structure)
+
+</div>
+
+---
 
 ## Features
 
-- **GEDZIP Support**: Automatically extracts and processes ZIP archives with media files
-- **Automatic Line Ending Fix**: Detects and corrects Mac-style line endings
-- **Organized Directory Structure**: Creates separate subdirectories for people, media, and stories (or flat structure with `--flat` flag)
-- **Canvas Visualization**: Generates Obsidian Canvas files for interactive family tree visualization with generational layout
-- **Complete Individual Notes**: Generates detailed markdown notes for each person
-- **Separate Story Files**: Extracts long-form narratives to individual markdown files with bidirectional linking
-- **WikiLinks**: All relationships use `[[WikiLinks]]` format for Obsidian with proper path prefixes
-- **Comprehensive Data**: Captures births, deaths, marriages, events, physical attributes, images, and notes
-- **Multiple Marriages**: Supports individuals with multiple spouses
-- **Media Management**: Automatically copies and organizes image files with correct relative paths
-- **Global Index**: Creates an alphabetical index of all individuals
-- **Proper Naming**: Files named as "FamilyName FirstName BirthYear.md"
+### Core Capabilities
+- 📦 **GEDZIP Support**: Automatically extracts and processes ZIP archives with media files
+- 🔧 **Automatic Line Ending Fix**: Detects and corrects Mac-style line endings
+- 📁 **Organized Directory Structure**: Creates separate subdirectories for people, media, and stories (or flat structure with `--flat` flag)
+- 🎨 **Canvas Visualization**: Generates Obsidian Canvas files for interactive family tree visualization with generational layout
+
+### Rich Data Extraction
+- 👤 **Complete Individual Notes**: Generates detailed markdown notes for each person
+- 📖 **Separate Story Files**: Extracts long-form narratives to individual markdown files with bidirectional linking
+- 🔗 **WikiLinks**: All relationships use `[[WikiLinks]]` format for Obsidian with proper path prefixes
+- 📊 **Comprehensive Data**: Captures births, deaths, marriages, events, physical attributes, images, and notes
+- 💑 **Multiple Marriages**: Supports individuals with multiple spouses
+
+### File Management
+- 🖼️ **Media Management**: Automatically copies and organizes image files with correct relative paths
+- 📑 **Global Index**: Creates an alphabetical index of all individuals
+- 🏷️ **Proper Naming**: Files named as "FamilyName FirstName BirthYear.md"
 
 ## Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/AlexKucera/gedcom-to-markdown.git
+cd gedcom-to-markdown
+
+# Install dependencies
 pip install -r requirements.txt
+```
+
+## Quick Start
+
+```bash
+# Convert a GEDCOM file with all default options
+python src/main.py -i path/to/family.ged -o output/
+
+# Convert a GEDZIP archive (recommended - includes media)
+python src/main.py -i path/to/family.zip -o output/
+
+# Generate with family tree visualization
+python src/main.py -i path/to/family.zip -o output/ --canvas
 ```
 
 ## Usage
@@ -30,12 +67,10 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```bash
+# Full syntax
 python src/main.py --input path/to/family.ged --output output/directory
-```
 
-or using short form:
-
-```bash
+# Short form
 python src/main.py -i path/to/family.ged -o output/directory
 ```
 
@@ -210,3 +245,42 @@ The GEDZIP format is a standard ZIP archive containing:
 - All referenced media files (photos, documents, etc.)
 
 This is the **recommended export format** for use with this converter.
+
+---
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+### Development
+
+```bash
+# Run tests
+pytest
+
+# Run tests with coverage
+pytest --cov=src --cov-report=html
+
+# Run tests in verbose mode
+pytest -v
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [python-gedcom](https://github.com/nickreynke/python-gedcom) for GEDCOM parsing
+- Designed for [Obsidian](https://obsidian.md) - the knowledge base that works on local Markdown files
+- Family tree visualization inspired by genealogy research workflows
+
+---
+
+<div align="center">
+
+**Made with ❤️ for genealogy enthusiasts and family historians**
+
+[⬆ Back to Top](#gedcom-to-markdown-converter)
+
+</div>
