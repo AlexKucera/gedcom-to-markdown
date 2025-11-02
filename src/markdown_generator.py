@@ -485,7 +485,7 @@ class MarkdownGenerator:
                 paths.append(path)
             except Exception as e:
                 logger.exception(
-                    f"Failed to generate note for {individual.get_full_name()}: {e}"
+                    f"Failed to generate note for {individual.get_full_name()}"
                 )
 
         logger.info(f"Successfully generated {len(paths)} notes")

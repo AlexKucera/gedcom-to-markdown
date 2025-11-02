@@ -57,7 +57,7 @@ class TestLineEndingFixes:
         assert b'\r' in original_content  # Has CR
 
         # Parse the file (should trigger line ending fix)
-        parser = GedcomParser(sample_gedcom_cr_only)
+        _parser = GedcomParser(sample_gedcom_cr_only)
 
         # Read the fixed content
         fixed_content = sample_gedcom_cr_only.read_bytes()

@@ -67,7 +67,7 @@ class IndexGenerator:
             current_letter = ""
 
             for individual in sorted_individuals:
-                first, last = individual.get_names()
+                _, last = individual.get_names()
 
                 # Write letter header if changed
                 if last:
