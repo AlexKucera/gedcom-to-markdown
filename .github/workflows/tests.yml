@@ -14,10 +14,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
-        include:
-          # Python 3.7 only on ubuntu-20.04 (EOL, not available on 24.04)
-          - os: ubuntu-20.04
-            python-version: '3.7'
 
     steps:
     - uses: actions/checkout@v4
@@ -37,7 +33,7 @@ jobs:
         pytest --cov=src --cov-report=xml --cov-report=term-missing
 
     - name: Upload coverage to Codecov
-      if: (matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-20.04') && matrix.python-version == '3.11'
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml

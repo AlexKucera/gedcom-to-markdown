@@ -274,7 +274,7 @@ Tests are configured in `pytest.ini`:
 - `python-gedcom==1.0.0`: GEDCOM parsing library
 - `pytest>=7.4.0`: Testing framework
 - `pytest-cov>=4.1.0`: Coverage plugin
-- Python 3.7+
+- Python 3.8+
 
 Update dependencies:
 ```sh

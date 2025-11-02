@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handling of disconnected family trees in canvas visualization
 
 ### Technical
-- Python 3.7+ compatibility
+- Python 3.8+ compatibility (3.7 is EOL and no longer supported)
 - Uses `python-gedcom==1.0.0` for GEDCOM parsing
 - Pytest-based testing infrastructure
 - Branch and line coverage analysis
