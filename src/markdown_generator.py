@@ -200,7 +200,7 @@ class MarkdownGenerator:
 
         for i, family in enumerate(families, 1):
             # Always write the Marriage header
-            f.write(f"### Marriage {i if len(families) > 1 else ''}\n")
+            f.write(f"### Marriage{f' {i}' if len(families) > 1 else ''}\n")
 
             # Only write partner metadata if partner exists
             if family["partner"]:
