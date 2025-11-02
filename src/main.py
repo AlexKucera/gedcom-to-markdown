@@ -6,6 +6,8 @@ This script converts GEDCOM genealogy files into Obsidian-compatible
 markdown notes with WikiLinks.
 """
 
+__version__ = "1.0.0"
+
 import argparse
 import logging
 import sys
@@ -306,6 +308,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Convert GEDCOM genealogy files to Obsidian markdown notes",
         epilog="Example: python src/main.py --input family.zip --output vault/family",
+    )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
 
     parser.add_argument(
