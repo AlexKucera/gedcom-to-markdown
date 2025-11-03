@@ -183,6 +183,65 @@ Stories are linked from person notes using WikiLinks, making it easy to navigate
 
 The `Index.md` file at the root contains an alphabetical listing of all individuals with WikiLinks to their person notes.
 
+## Canvas Visualization
+
+The `--canvas` option generates an **Obsidian Canvas file** that provides an interactive, visual representation of your family tree. This creates a `.canvas` file in your output directory that can be opened in Obsidian for a graphical view of family relationships.
+
+### How It Works
+
+The canvas generator uses a **generational layout algorithm** that arranges family members spatially:
+
+- **Timeline Layout**: Ancestors appear to the right, descendants to the left, creating a left-to-right timeline
+- **Vertical Positioning**: Family members are arranged vertically with gender-aware positioning to minimize relationship line crossings
+- **Automatic Tree Building**: Uses breadth-first search from the selected root person to build the family tree
+- **Disconnected Families**: Automatically detects and includes unconnected family groups as separate sections
+- **Visual Elements**:
+  - Each person appears as a card/node with their name and basic information
+  - Person images are embedded in the canvas nodes when available
+  - Parent-child relationships shown as lines connecting left to right
+  - Spouse relationships shown as bidirectional vertical connections
+
+### Root Person Selection
+
+When using the `--canvas` flag, you can specify the root person in several ways:
+
+```bash
+# Interactive selection (displays numbered list)
+python src/main.py -i family.ged -o output --canvas
+
+# By selection number
+python src/main.py -i family.ged -o output --canvas --root 85
+
+# By GEDCOM ID
+python src/main.py -i family.ged -o output --canvas --root @I253884714@
+```
+
+The root person serves as the starting point for building the family tree visualization.
+
+### Limitations and Known Issues
+
+While the canvas generator creates a useful visualization, it has some limitations:
+
+1. **Spacing Approximations**: The algorithm calculates node positions using heuristics for spacing. Complex family structures (many siblings, multiple marriages) can sometimes result in:
+   - Nodes positioned slightly too close together
+   - Occasional minor overlaps between adjacent cards
+
+2. **Manual Adjustments Expected**: In most cases, **a few nodes may overlap slightly**, but these overlaps are typically minimal and **can easily be fixed by hand** in Obsidian by dragging the nodes to better positions.
+
+3. **Complex Marriages**: Individuals with multiple marriages may have relationship lines that cross in non-optimal ways.
+
+4. **Large Trees**: Very large family trees (100+ individuals) may require manual adjustment for optimal viewing.
+
+5. **Edge Routing**: Connection lines between nodes use straight lines, which can sometimes cross through other nodes in complex family structures.
+
+### Tips for Best Results
+
+- Start with a central family member (grandparent or parent) as the root person
+- For large families, consider creating multiple canvas files focused on different branches
+- Use Obsidian's zoom and pan features to navigate large canvases
+- After initial generation, spend a few minutes adjusting any overlapping nodes for a cleaner layout
+- The canvas is fully interactive - you can reorganize it to suit your preferences while maintaining all the relationship connections
+
 ## Project Structure
 
 ```text
