@@ -7,7 +7,7 @@
 **Convert GEDCOM genealogy files to Obsidian-compatible markdown notes with WikiLinks**
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Tests](https://github.com/AlexKucera/gedcom-to-markdown/actions/workflows/tests.yml/badge.svg)](https://github.com/AlexKucera/gedcom-to-markdown/actions/workflows/tests.yml)
 [![Codecov](https://codecov.io/gh/AlexKucera/gedcom-to-markdown/branch/main/graph/badge.svg)](https://codecov.io/gh/AlexKucera/gedcom-to-markdown)
 [![CodeRabbit Reviews](https://img.shields.io/coderabbit/prs/github/AlexKucera/gedcom-to-markdown?utm_source=oss&utm_medium=github&utm_campaign=AlexKucera%2Fgedcom-to-markdown&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit)](https://coderabbit.ai)
@@ -326,7 +326,7 @@ pytest -v
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
